@@ -1,0 +1,13 @@
+# Sensitive configuration file with database credentials
+config/config.php
+
+# SQL Database backups
+backups/*.sql
+
+# IDE & Editor files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
