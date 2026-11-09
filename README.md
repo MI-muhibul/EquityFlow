@@ -204,7 +204,7 @@ Built in 20 incremental pushes:
 
 - [x] 1. Repository skeleton, router and README
 - [x] 2. Database schema and seed data
-- [ ] 3. PDO connection, constants, secure session
+- [x] 3. PDO connection, constants, secure session
 - [ ] 4. Bangla / English language system
 - [ ] 5. Base layout and dark theme
 - [ ] 6. Login with `password_hash`

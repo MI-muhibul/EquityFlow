@@ -10,10 +10,9 @@ declare(strict_types=1);
  * the appropriate controller or renders a 404 error fallback.
  */
 
-// Start session to persist user state and language selection
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Initialize secure session with hardened cookie parameters and timeout check
+require_once __DIR__ . '/config/session.php';
+init_secure_session();
 
 // -----------------------------------------------------------------------------
 // 1. Language Loader (Bangla by default, English supported)
@@ -49,6 +48,7 @@ $routeWhitelist = [
     'reports'    => 'ReportController',
     'backup'     => 'BackupController',
     'auth'       => 'AuthController',
+    'db-check'   => 'DbCheckController',
 ];
 
 // Determine the requested page from GET parameter (default: 'dashboard')
