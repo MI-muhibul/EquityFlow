@@ -202,8 +202,8 @@ Results are recorded in `docs/` as the project progresses.
 
 Built in 20 incremental pushes:
 
-- [ ] 1. Repository skeleton, router and README
-- [ ] 2. Database schema and seed data
+- [x] 1. Repository skeleton, router and README
+- [x] 2. Database schema and seed data
 - [ ] 3. PDO connection, constants, secure session
 - [ ] 4. Bangla / English language system
 - [ ] 5. Base layout and dark theme
@@ -246,6 +246,3 @@ Submitted to **Lukman Nakib**, Guest Lecturer, Department of Software Engineerin
 
 GitHub: [@MI-muhibul](https://github.com/MI-muhibul)
 
-## License
-
-Released under the MIT License. See `LICENSE` for details.
