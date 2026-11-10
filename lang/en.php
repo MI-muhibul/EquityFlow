@@ -86,6 +86,8 @@ return [
     'error_account_locked'    => 'Account is locked due to multiple failed login attempts. Contact support or try later.',
     'error_session_timeout'   => 'Your session has expired due to inactivity. Please log in again.',
     'error_password_match'    => 'The entered passwords do not match.',
+    'error_password_length'   => 'New password must be at least 8 characters long.',
+    'error_current_password_invalid' => 'Current password is incorrect.',
     'error_csrf_invalid'      => 'Security token invalid or expired. Please submit the form again.',
     'error_stock_insufficient'=> 'Insufficient product stock available for this sale.',
     'error_customer_has_due'  => 'Cannot delete customer with an outstanding due balance.',

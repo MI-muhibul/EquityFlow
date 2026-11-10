@@ -65,7 +65,7 @@ $toggleLang  = ($currentLang === 'bn') ? 'en' : 'bn';
             <!-- Login Form -->
             <form method="POST" action="index.php?page=auth&amp;action=login" novalidate>
                 <!-- CSRF Protection Hidden Token -->
-                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                <?= csrf_field() ?>
 
                 <!-- Username Input -->
                 <div class="form-group">

@@ -73,8 +73,8 @@ function enforce_session_timeout(): void {
         // Clear all session variables
         $_SESSION = [];
 
-        // Delete the session cookie in browser
-        if (ini_get('session.use_cookies')) {
+        // Delete the session cookie in browser if headers not already sent
+        if (ini_get('session.use_cookies') && !headers_sent()) {
             $params = session_get_cookie_params();
             setcookie(
                 session_name(),
@@ -90,8 +90,12 @@ function enforce_session_timeout(): void {
         // Destroy server session storage
         session_destroy();
 
-        // Start a fresh empty session
-        session_start();
+        // Start a fresh empty session safely
+        if (!headers_sent()) {
+            session_start();
+        } else {
+            @session_start();
+        }
         $_SESSION['session_expired'] = true;
     }
 
@@ -105,7 +109,7 @@ function enforce_session_timeout(): void {
 function terminate_session(): void {
     if (session_status() === PHP_SESSION_ACTIVE) {
         $_SESSION = [];
-        if (ini_get('session.use_cookies')) {
+        if (ini_get('session.use_cookies') && !headers_sent()) {
             $params = session_get_cookie_params();
             setcookie(
                 session_name(),
@@ -121,28 +125,5 @@ function terminate_session(): void {
     }
 }
 
-/**
- * Generate or retrieve the CSRF defense token for the current session.
- */
-function csrf_token(): string {
-    if (session_status() === PHP_SESSION_NONE) {
-        init_secure_session();
-    }
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return (string)$_SESSION['csrf_token'];
-}
-
-/**
- * Validate submitted CSRF token using constant-time string comparison.
- */
-function csrf_verify(?string $token): bool {
-    if (session_status() === PHP_SESSION_NONE) {
-        init_secure_session();
-    }
-    if (empty($_SESSION['csrf_token']) || empty($token)) {
-        return false;
-    }
-    return hash_equals((string)$_SESSION['csrf_token'], (string)$token);
-}
+// Load CSRF protection helpers
+require_once __DIR__ . '/csrf.php';

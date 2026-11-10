@@ -208,7 +208,7 @@ Built in 20 incremental pushes:
 - [x] 4. Bangla / English language system
 - [x] 5. Base layout and dark theme
 - [x] 6. Login with `password_hash`
-- [ ] 7. Lockout, timeout, CSRF, change password
+- [x] 7. Lockout, timeout, CSRF, change password
 - [ ] 8. Dashboard shell and navigation
 - [ ] 9. Customers: add and list
 - [ ] 10. Customers: edit, view, delete

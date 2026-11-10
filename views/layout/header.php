@@ -110,8 +110,13 @@ function navClass(string $slug, string $active): string {
                 &#127760; <?= e(t('toggle_language')) ?>
             </a>
 
-            <!-- Logout button — only visible when logged in -->
+            <!-- Account Controls — only visible when logged in -->
             <?php if (!empty($_SESSION['user_id'])): ?>
+                <a href="index.php?page=auth&amp;action=change_password"
+                   class="btn btn-sm btn-ghost"
+                   title="<?= e(t('btn_change_password')) ?>">
+                    &#128273; <?= e(t('btn_change_password')) ?>
+                </a>
                 <a href="index.php?page=auth&amp;action=logout"
                    class="btn btn-sm btn-outline-danger">
                     <?= e(t('nav_logout')) ?>

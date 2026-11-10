@@ -10,6 +10,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../config/lang.php';
+require_once __DIR__ . '/../config/auth_guard.php';
 require_once __DIR__ . '/../helpers/format.php';
 
 class DashboardController {
@@ -17,6 +18,8 @@ class DashboardController {
      * Display the primary shop overview dashboard.
      */
     public function index(): void {
+        // Enforce active authentication and 30-minute session timeout
+        require_login();
         try {
             $pdo = Database::getConnection();
 
