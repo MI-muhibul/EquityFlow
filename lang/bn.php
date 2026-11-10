@@ -4,27 +4,165 @@ declare(strict_types=1);
 /**
  * EquityFlow - বাংলা ভাষা ফাইল (Bangla Language Pack)
  * স্লোগান: Where Financial Records Flow with Accuracy
+ * দোকানদারদের জন্য সহজ ও সাবলীল বাংলা পরিভাষা
  */
 
 return [
     // অ্যাপ পরিচিতি
-    'app_name'           => 'ইকুইটিফ্লো',
-    'app_tagline'        => 'Where Financial Records Flow with Accuracy',
-    'currency_symbol'    => '৳',
+    'app_name'                => 'ইকুইটিফ্লো',
+    'app_tagline'             => 'Where Financial Records Flow with Accuracy',
+    'currency_symbol'         => '৳',
+    'toggle_language'         => 'English',
 
-    // নেভিগেশন ও সাধারণ পেজ
-    'nav_dashboard'      => 'ড্যাশবোর্ড',
-    'nav_customers'      => 'কাস্টমার খাতা',
-    'nav_suppliers'      => 'সাপ্লায়ার খাতা',
-    'nav_cashbook'       => 'দৈনিক খাতা',
-    'nav_reports'        => 'হিসাব রিপোর্ট',
-    'nav_backup'         => 'ডাটাবেজ ব্যাকআপ',
-    'nav_logout'         => 'লগআউট',
+    // নেভিগেশন
+    'nav_dashboard'           => 'ড্যাশবোর্ড',
+    'nav_customers'           => 'কাস্টমার খাতা',
+    'nav_suppliers'           => 'সাপ্লায়ার খাতা',
+    'nav_products'            => 'পণ্যের মজুদ / স্টক',
+    'nav_transactions'        => 'লেনদেন খাতা',
+    'nav_cashbook'            => 'দৈনিক খাতা',
+    'nav_reports'             => 'হিসাবের রিপোর্ট',
+    'nav_settings'            => 'সেটিংস',
+    'nav_backup'              => 'ডাটাবেজ ব্যাকআপ',
+    'nav_logout'              => 'লগআউট',
+
+    // অ্যাকশন বাটন
+    'btn_save'                => 'সংরক্ষণ করুন',
+    'btn_cancel'              => 'বাতিল',
+    'btn_delete'              => 'মুছে ফেলুন',
+    'btn_edit'                => 'সম্পাদনা',
+    'btn_update'              => 'আপডেট করুন',
+    'btn_add_customer'        => 'নতুন কাস্টমার',
+    'btn_add_product'         => 'নতুন পণ্য যোগ',
+    'btn_new_transaction'     => 'নতুন লেনদেন',
+    'btn_record_credit'       => 'বাকি দিন',
+    'btn_record_payment'      => 'জমা নিন',
+    'btn_search'              => 'অনুসন্ধান',
+    'btn_filter'              => 'ফিল্টার',
+    'btn_reset'               => 'রিসেট',
+    'btn_back'                => 'পিছনে যান',
+    'btn_print'               => 'রশিদ প্রিন্ট',
+    'btn_download_backup'     => 'ব্যাকআপ ডাউনলোড (.sql)',
+    'btn_change_password'     => 'পাসওয়ার্ড পরিবর্তন',
+    'btn_login'               => 'লগইন করুন',
+
+    // ফর্ম ফিল্ড লেবেল
+    'label_name'              => 'পূর্ণ নাম',
+    'label_phone'             => 'মোবাইল নম্বর',
+    'label_address'           => 'ঠিকানা / এলাকা',
+    'label_balance'           => 'বর্তমান ব্যালেন্স',
+    'label_credit_limit'      => 'বাকির সর্বোচ্চ সীমা',
+    'label_initial_balance'   => 'প্রারম্ভিক ব্যালেন্স',
+    'label_amount'            => 'টাকার পরিমাণ (৳)',
+    'label_transaction_type'  => 'লেনদেনের ধরন',
+    'label_note'              => 'বিবরণ / নোট',
+    'label_date'              => 'তারিখ',
+    'label_product_name'      => 'পণ্যের নাম',
+    'label_category'          => 'ক্যাটাগরি',
+    'label_retail_price'      => 'বিক্রয় মূল্য (৳)',
+    'label_cost_price'        => 'পাইকারি / ক্রয় মূল্য (৳)',
+    'label_stock'             => 'বর্তমান মজুদ',
+    'label_min_stock'         => 'সতর্কবার্তা মজুদ সীমা',
+    'label_quantity'          => 'পরিমাণ',
+    'label_username'          => 'ইউজারনেম',
+    'label_password'          => 'পাসওয়ার্ড',
+    'label_current_password'  => 'বর্তমান পাসওয়ার্ড',
+    'label_new_password'      => 'নতুন পাসওয়ার্ড',
+    'label_confirm_password'  => 'নতুন পাসওয়ার্ড নিশ্চিত করুন',
+    'label_security_pin'      => 'গোপন নিরাপত্তা পিন (৪ ডিজিট)',
+
+    // পণ্যের মজুদ অবস্থা (Stock Statuses)
+    'status_in_stock'         => 'মজুদ আছে',
+    'status_low_stock'        => 'মজুদ কম (সতর্কতা)',
+    'status_out_of_stock'     => 'স্টক খালি',
+
+    // ভ্যালিডেশন ও নিরাপত্তা ত্রুটি
+    'error_required_field'    => 'এই তথ্যটি পূরণ করা বাধ্যতামূলক।',
+    'error_invalid_phone'     => 'অনুগ্রহ করে সঠিক ১১ ডিজিটের বাংলাদেশী মোবাইল নম্বর লিখুন (যেমন: ০১৭১xxxxxxx)।',
+    'error_phone_exists'      => 'এই মোবাইল নম্বরটি অন্য একজন কাস্টমারের নামে ইতোমধ্যেই যুক্ত আছে।',
+    'error_amount_positive'   => 'টাকার পরিমাণ অবশ্যই শূন্য (৳০.০০)-এর বেশি হতে হবে।',
+    'error_credit_limit'      => 'এই লেনদেনটি কাস্টমারের বাকির সর্বোচ্চ সীমা অতিক্রম করছে।',
+    'error_product_exists'    => 'এই নামের একটি পণ্য ইতোমধ্যে ইনভেন্টরিতে বিদ্যমান।',
+    'error_invalid_login'     => 'ভুল ইউজারনেম অথবা পাসওয়ার্ড। আবার সঠিক তথ্য দিয়ে চেষ্টা করুন।',
+    'error_account_locked'    => 'একাধিকবার ভুল তথ্য প্রদান করায় অ্যাকাউন্টটি সাময়িক লক করা হয়েছে। কিছুক্ষণ পর চেষ্টা করুন।',
+    'error_session_timeout'   => 'নিষ্ক্রিয়তার কারণে আপনার সেশনের মেয়াদ শেষ হয়েছে। পুনরায় লগইন করুন।',
+    'error_password_match'    => 'উভয় ঘরে লেখা পাসওয়ার্ড এক হয়নি।',
+    'error_csrf_invalid'      => 'নিরাপত্তা টোকেন অকার্যকর বা মেয়াদোত্তীর্ণ হয়েছে। পুনরায় ফর্মটি জমা দিন।',
+    'error_stock_insufficient'=> 'দোকানে এই পরিমাণ পণ্যের মজুদ নেই।',
+    'error_customer_has_due'  => 'বকেয়া বাকি থাকা অবস্থায় কাস্টমারের খাতা মুছে ফেলা সম্ভব নয়।',
+
+    // সফলতার বার্তা
+    'msg_saved_success'       => 'তথ্য সফলভাবে সংরক্ষণ করা হয়েছে।',
+    'msg_updated_success'     => 'তথ্য সফলভাবে আপডেট করা হয়েছে।',
+    'msg_deleted_success'     => 'তথ্য সফলভাবে মুছে ফেলা হয়েছে।',
+    'msg_login_success'       => 'স্বাগতম! সফলভাবে লগইন সম্পন্ন হয়েছে।',
+    'msg_logout_success'      => 'সফলভাবে লগআউট হয়েছে।',
+    'msg_password_changed'    => 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।',
+    'msg_backup_created'      => 'ডাটাবেজ ব্যাকআপ ফাইল সফলভাবে তৈরি হয়েছে।',
+
+    // লগইন ও প্রমাণীকরণ
+    'login_title'             => 'দোকান মালিক লগইন',
+    'login_subtitle'          => 'ডিজিটাল খাতায় প্রবেশ করতে আপনার তথ্য প্রদান করুন',
+    'login_failed_attempts'   => 'অ্যাকাউন্ট লক হওয়ার আগে বাকি চেষ্টা: :attempts বার',
+
+    // কাস্টমার খাতা মডিউল
+    'customer_title'          => 'কাস্টমারদের বাকির খাতা',
+    'customer_details'        => 'কাস্টমার প্রোফাইল ও হিসাব',
+    'customer_total_due'      => 'মোট বকেয়া পাওনা',
+    'customer_advance_paid'   => 'মোট অগ্রিম জমা',
+    'customer_zero_balance'   => 'হিসাব পরিশোধ (কোনো বাকি নেই)',
+    'customer_empty_list'     => 'এখনও কোনো কাস্টমার যুক্ত করা হয়নি। "নতুন কাস্টমার" বাটনে ক্লিক করুন।',
+    'customer_delete_confirm' => 'আপনি কি নিশ্চিতভাবে এই কাস্টমারকে মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।',
+
+    // লেনদেন ও খাতা মডিউল
+    'txn_title'               => 'লেনদেনের বিস্তারিত ইতিহাস',
+    'txn_type_credit'         => 'পণ্য বাকি বিক্রয় (বাকি)',
+    'txn_type_payment'        => 'নগদ টাকা গ্রহণ (জমা)',
+    'txn_voucher_no'          => 'রশিদ / ভাউচার নং',
+    'txn_running_balance'     => 'চলতি ব্যালেন্স',
+    'txn_empty_list'          => 'এখনও কোনো লেনদেনের হিসাব লিপিবদ্ধ করা হয়নি।',
+
+    // পণ্য ও ইনভেন্টরি মডিউল
+    'product_title'           => 'পণ্যের তালিকা ও বর্তমান মজুদ',
+    'product_profit_per_unit' => 'ইউনিট প্রতি লাভ',
+    'product_margin'          => 'লাভের হার (%)',
+    'product_empty_list'      => 'দোকানের ইনভেন্টরিতে কোনো পণ্য পাওয়া যায়নি।',
+
+    // হিসাব রিপোর্ট মডিউল
+    'report_title'            => 'মাসিক আর্থিক হিসাবের সারাংশ',
+    'report_period'           => 'হিসাবের সময়কাল',
+    'report_total_sales'      => 'মোট বিক্রয়',
+    'report_total_credit'     => 'মোট বাকি বিক্রয়',
+    'report_total_cash'       => 'মোট নগদ জমা আদায়',
+    'report_net_profit'       => 'আনুমানিক মোট লাভ',
+    'report_outstanding_due'  => 'বাজারে মোট অনাদায়ী বকেয়া',
+
+    // সেটিংস মডিউল
+    'settings_title'          => 'দোকানের পরিচিতি ও সেটিংস',
+    'settings_shop_name'      => 'দোকানের নাম',
+    'settings_shop_phone'     => 'দোকানের মোবাইল নম্বর',
+    'settings_shop_address'   => 'দোকানের ঠিকানা',
+    'settings_language'       => 'ডিফল্ট ভাষা নির্বাচন',
+    'settings_backup_heading' => 'ডাটাবেজ ব্যাকআপ ও নিরাপত্তা',
+
+    // মাসের নামসমূহ (বাংলা ক্যালেন্ডার রূপান্তর)
+    'month_1'                 => 'জানুয়ারি',
+    'month_2'                 => 'ফেব্রুয়ারি',
+    'month_3'                 => 'মার্চ',
+    'month_4'                 => 'এপ্রিল',
+    'month_5'                 => 'মে',
+    'month_6'                 => 'জুন',
+    'month_7'                 => 'জুলাই',
+    'month_8'                 => 'আগস্ট',
+    'month_9'                 => 'সেপ্টেম্বর',
+    'month_10'                => 'অক্টোবর',
+    'month_11'                => 'নভেম্বর',
+    'month_12'                => 'ডিসেম্বর',
 
     // ত্রুটি ও ৪০৪ বার্তা
-    'page_not_found'     => 'পৃষ্ঠা পাওয়া যায়নি',
-    'page_not_found_desc'=> 'আপনার অনুরোধ করা পৃষ্ঠাটি খুঁজে পাওয়া যায়নি অথবা সরানো হয়েছে।',
-    'controller_missing' => 'কন্ট্রোলার পাওয়া যায়নি',
+    'page_not_found'          => 'পৃষ্ঠা পাওয়া যায়নি',
+    'page_not_found_desc'     => 'আপনার অনুরোধ করা পৃষ্ঠাটি খুঁজে পাওয়া যায়নি অথবা সরানো হয়েছে।',
+    'controller_missing'      => 'কন্ট্রোলার পাওয়া যায়নি',
     'controller_missing_desc' => 'এই রাউটের জন্য নির্ধারিত কন্ট্রোলারটি এখনও তৈরি করা হয়নি।',
-    'back_to_home'       => 'ড্যাশবোর্ডে ফিরে যান',
+    'back_to_home'            => 'ড্যাশবোর্ডে ফিরে যান',
 ];

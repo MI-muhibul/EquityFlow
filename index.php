@@ -14,30 +14,17 @@ declare(strict_types=1);
 require_once __DIR__ . '/config/session.php';
 init_secure_session();
 
-// -----------------------------------------------------------------------------
-// 1. Language Loader (Bangla by default, English supported)
-// -----------------------------------------------------------------------------
-if (isset($_GET['lang']) && in_array($_GET['lang'], ['bn', 'en'], true)) {
-    $_SESSION['lang'] = $_GET['lang'];
-}
-$currentLang = $_SESSION['lang'] ?? 'bn';
+// Initialize bilingual language engine
+require_once __DIR__ . '/config/lang.php';
 
-// Load language translation array
-$langFile = __DIR__ . '/lang/' . $currentLang . '.php';
-if (file_exists($langFile)) {
-    $lang = require $langFile;
-} else {
-    $lang = [];
+// Handle explicit language switch request (?lang=bn or ?lang=en)
+if (isset($_GET['lang'])) {
+    set_lang((string)$_GET['lang']);
 }
-
-// Helper function to safely output translated text with htmlspecialchars
-function __e(string $key, array $lang, string $default = ''): string {
-    $text = $lang[$key] ?? $default;
-    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-}
+$currentLang = get_current_lang();
 
 // -----------------------------------------------------------------------------
-// 2. Route Whitelist (Mapping ?page=name to Controller Class)
+// Route Whitelist (Mapping ?page=name to Controller Class)
 // -----------------------------------------------------------------------------
 $routeWhitelist = [
     'dashboard'  => 'DashboardController',
@@ -195,24 +182,24 @@ function renderErrorView(int $statusCode, string $title, string $message, string
 }
 
 // -----------------------------------------------------------------------------
-// 4. Whitelist Verification
+// Whitelist Verification
 // -----------------------------------------------------------------------------
 if (!array_key_exists($requestedPage, $routeWhitelist)) {
-    $title = __e('page_not_found', $lang, 'পৃষ্ঠা পাওয়া যায়নি / Page Not Found');
-    $msg   = __e('page_not_found_desc', $lang, 'অনুরোধ করা পৃষ্ঠাটি রাউট তালিকায় পাওয়া যায়নি।');
+    $title = t('page_not_found');
+    $msg   = t('page_not_found_desc');
     renderErrorView(404, $title, $msg, 'Route: ?page=' . $requestedPage, $currentLang);
 }
 
 // -----------------------------------------------------------------------------
-// 5. Controller File Resolution & Dispatch
+// Controller File Resolution & Dispatch
 // -----------------------------------------------------------------------------
 $controllerClass = $routeWhitelist[$requestedPage];
 $controllerFile  = __DIR__ . '/controllers/' . $controllerClass . '.php';
 
 // Check if controller file exists on disk
 if (!file_exists($controllerFile)) {
-    $title = __e('controller_missing', $lang, 'কন্ট্রোলার পাওয়া যায়নি / Controller Not Found');
-    $msg   = __e('controller_missing_desc', $lang, 'এই রাউটের জন্য নির্ধারিত কন্ট্রোলার ফাইলটি এখনো প্রস্তুত করা হয়নি।');
+    $title = t('controller_missing');
+    $msg   = t('controller_missing_desc');
     renderErrorView(404, $title, $msg, 'File: controllers/' . $controllerClass . '.php', $currentLang);
 }
 
@@ -229,7 +216,7 @@ if (class_exists($controllerClass)) {
         $controller->handleRequest();
     }
 } else {
-    $title = __e('controller_missing', $lang, 'কন্ট্রোলার পাওয়া যায়নি / Controller Not Found');
+    $title = t('controller_missing');
     $msg   = 'The controller class exists in file but definition was not found.';
     renderErrorView(500, $title, $msg, 'Class: ' . $controllerClass, $currentLang);
 }

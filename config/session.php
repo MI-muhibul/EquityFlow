@@ -19,6 +19,14 @@ function init_secure_session(): void {
         return;
     }
 
+    // Defensive check: if headers already sent (e.g. in CLI or test runner), start session safely
+    if (headers_sent()) {
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+        return;
+    }
+
     // Detect if current connection is over HTTPS
     $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
