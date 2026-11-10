@@ -4,19 +4,21 @@ declare(strict_types=1);
 /**
  * views/layout/header.php
  * -----------------------------------------------------------------------
- * Shared page top — rendered at the start of every public view.
+ * Shared page top — rendered at the start of every public/protected view.
  *
  * Before including this file, a controller may set:
  *   $pageTitle  (string) — overrides the default <title>
- *   $activePage (string) — highlights the correct nav link
+ *   $activePage (string) — highlights the active navigation link
  *
  * What this provides:
  *   • HTML5 DOCTYPE, <head> with viewport + CSS link
- *   • Sticky header: brand, nav, language toggle, logout button
+ *   • Sticky header with brand logo and main navigation:
+ *       (Dashboard, Customers, Transactions, Inventory, Reports, Settings, Logout, language toggle)
+ *   • Highlights the active page via 'active' CSS class
  *   • Opening <main class="main-wrap"> for page content
- *   • flash_show() — displays one-time session alerts here
+ *   • flash_show() — renders one-time session alerts
  * -----------------------------------------------------------------------
- * Rules: Zero JavaScript, all strings from lang files, e() on all output.
+ * Rules: Zero JavaScript, all strings from lang files via t(), e() on all output.
  */
 
 // --- Load core dependencies ---
@@ -37,8 +39,20 @@ $htmlTitle = isset($pageTitle)
     : e(t('app_name')) . ' — ' . e(t('app_tagline'));
 
 // Helper: return 'active' CSS class if slug matches
-function navClass(string $slug, string $active): string {
-    return $slug === $active ? ' active' : '';
+if (!function_exists('navClass')) {
+    function navClass(string $slug, string $active): string {
+        if ($slug === $active) {
+            return ' active';
+        }
+        // Match aliases for transactions/inventory
+        if ($slug === 'transactions' && in_array($active, ['transactions', 'ledger'], true)) {
+            return ' active';
+        }
+        if ($slug === 'inventory' && in_array($active, ['inventory', 'products'], true)) {
+            return ' active';
+        }
+        return '';
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -73,7 +87,8 @@ function navClass(string $slug, string $active): string {
             </div>
         </a>
 
-        <!-- ===== Main Navigation ===== -->
+        <!-- ===== Main Navigation =====
+             Order: Dashboard, Customers, Transactions, Inventory, Reports, Settings, Logout, language toggle -->
         <nav class="app-nav" aria-label="<?= e(t('app_name')) ?> Main Menu">
             <a href="index.php?page=dashboard"
                class="nav-link<?= navClass('dashboard', $activePage) ?>">
@@ -83,13 +98,13 @@ function navClass(string $slug, string $active): string {
                class="nav-link<?= navClass('customers', $activePage) ?>">
                 <?= e(t('nav_customers')) ?>
             </a>
-            <a href="index.php?page=products"
-               class="nav-link<?= navClass('products', $activePage) ?>">
-                <?= e(t('nav_products')) ?>
-            </a>
-            <a href="index.php?page=ledger"
-               class="nav-link<?= navClass('ledger', $activePage) ?>">
+            <a href="index.php?page=transactions"
+               class="nav-link<?= navClass('transactions', $activePage) ?>">
                 <?= e(t('nav_transactions')) ?>
+            </a>
+            <a href="index.php?page=inventory"
+               class="nav-link<?= navClass('inventory', $activePage) ?>">
+                <?= e(t('nav_inventory')) ?>
             </a>
             <a href="index.php?page=reports"
                class="nav-link<?= navClass('reports', $activePage) ?>">
@@ -99,27 +114,26 @@ function navClass(string $slug, string $active): string {
                class="nav-link<?= navClass('settings', $activePage) ?>">
                 <?= e(t('nav_settings')) ?>
             </a>
-        </nav>
-
-        <!-- ===== Language Toggle + Logout ===== -->
-        <div class="header-controls">
-            <!-- Language toggle — switches between Bangla and English -->
+            <?php if (!empty($_SESSION['user_id'])): ?>
+                <a href="index.php?page=auth&amp;action=logout"
+                   class="nav-link nav-link-logout">
+                    <?= e(t('nav_logout')) ?>
+                </a>
+            <?php endif; ?>
             <a href="index.php?lang=<?= e($toggleLang) ?>"
-               class="lang-btn"
+               class="nav-link lang-btn"
                aria-label="Switch language">
                 &#127760; <?= e(t('toggle_language')) ?>
             </a>
+        </nav>
 
-            <!-- Account Controls — only visible when logged in -->
+        <!-- ===== Account Controls ===== -->
+        <div class="header-controls">
             <?php if (!empty($_SESSION['user_id'])): ?>
                 <a href="index.php?page=auth&amp;action=change_password"
                    class="btn btn-sm btn-ghost"
                    title="<?= e(t('btn_change_password')) ?>">
                     &#128273; <?= e(t('btn_change_password')) ?>
-                </a>
-                <a href="index.php?page=auth&amp;action=logout"
-                   class="btn btn-sm btn-outline-danger">
-                    <?= e(t('nav_logout')) ?>
                 </a>
             <?php endif; ?>
         </div>

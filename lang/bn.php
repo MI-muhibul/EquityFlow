@@ -16,15 +16,24 @@ return [
 
     // নেভিগেশন
     'nav_dashboard'           => 'ড্যাশবোর্ড',
-    'nav_customers'           => 'কাস্টমার খাতা',
-    'nav_suppliers'           => 'সাপ্লায়ার খাতা',
-    'nav_products'            => 'পণ্যের মজুদ / স্টক',
-    'nav_transactions'        => 'লেনদেন খাতা',
-    'nav_cashbook'            => 'দৈনিক খাতা',
-    'nav_reports'             => 'হিসাবের রিপোর্ট',
+    'nav_customers'           => 'কাস্টমার',
+    'nav_transactions'        => 'লেনদেন',
+    'nav_inventory'           => 'ইনভেন্টরি',
+    'nav_products'            => 'ইনভেন্টরি',
+    'nav_reports'             => 'রিপোর্ট',
     'nav_settings'            => 'সেটিংস',
-    'nav_backup'              => 'ডাটাবেজ ব্যাকআপ',
     'nav_logout'              => 'লগআউট',
+    'nav_suppliers'           => 'সাপ্লায়ার',
+    'nav_cashbook'            => 'দৈনিক খাতা',
+    'nav_backup'              => 'ডাটাবেজ ব্যাকআপ',
+
+    // ড্যাশবোর্ড
+    'dashboard_title'         => 'দোকানের ড্যাশবোর্ড',
+    'dashboard_subtitle'      => 'হিসাবের স্বচ্ছতায় ব্যবসার অগ্রগতি',
+    'card_customers'          => 'মোট কাস্টমার',
+    'card_total_outstanding'  => 'মোট বকেয়া পাওনা',
+    'card_low_stock'          => 'মজুদ ঘাটতি পণ্য',
+    'card_month_collections'  => 'চলতি মাসের নগদ আদায়',
 
     // অ্যাকশন বাটন
     'btn_save'                => 'সংরক্ষণ করুন',

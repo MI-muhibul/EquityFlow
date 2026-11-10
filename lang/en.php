@@ -15,15 +15,24 @@ return [
 
     // Navigation
     'nav_dashboard'           => 'Dashboard',
-    'nav_customers'           => 'Customer Ledger',
-    'nav_suppliers'           => 'Supplier Ledger',
-    'nav_products'            => 'Inventory / Products',
-    'nav_transactions'        => 'Ledger Entries',
-    'nav_cashbook'            => 'Daily Khata',
-    'nav_reports'             => 'Financial Reports',
+    'nav_customers'           => 'Customers',
+    'nav_transactions'        => 'Transactions',
+    'nav_inventory'           => 'Inventory',
+    'nav_products'            => 'Inventory',
+    'nav_reports'             => 'Reports',
     'nav_settings'            => 'Settings',
-    'nav_backup'              => 'Database Backup',
     'nav_logout'              => 'Logout',
+    'nav_suppliers'           => 'Suppliers',
+    'nav_cashbook'            => 'Daily Khata',
+    'nav_backup'              => 'Database Backup',
+
+    // Dashboard
+    'dashboard_title'         => 'Shop Dashboard',
+    'dashboard_subtitle'      => 'Where Financial Records Flow with Accuracy',
+    'card_customers'          => 'Customers',
+    'card_total_outstanding'  => 'Total Outstanding',
+    'card_low_stock'          => 'Low-Stock Items',
+    'card_month_collections'  => "This Month's Collections",
 
     // Action Buttons
     'btn_save'                => 'Save',

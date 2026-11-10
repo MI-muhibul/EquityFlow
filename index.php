@@ -27,15 +27,19 @@ $currentLang = get_current_lang();
 // Route Whitelist (Mapping ?page=name to Controller Class)
 // -----------------------------------------------------------------------------
 $routeWhitelist = [
-    'dashboard'  => 'DashboardController',
-    'customers'  => 'CustomerController',
-    'suppliers'  => 'SupplierController',
-    'ledger'     => 'LedgerController',
-    'cashbook'   => 'CashbookController',
-    'reports'    => 'ReportController',
-    'backup'     => 'BackupController',
-    'auth'       => 'AuthController',
-    'db-check'   => 'DbCheckController',
+    'dashboard'    => 'DashboardController',
+    'customers'    => 'CustomerController',
+    'transactions' => 'TransactionController',
+    'inventory'    => 'ProductController',
+    'products'     => 'ProductController',
+    'suppliers'    => 'SupplierController',
+    'ledger'       => 'LedgerController',
+    'cashbook'     => 'CashbookController',
+    'reports'      => 'ReportController',
+    'settings'     => 'SettingController',
+    'backup'       => 'BackupController',
+    'auth'         => 'AuthController',
+    'db-check'     => 'DbCheckController',
 ];
 
 // Determine the requested page from GET parameter (default: 'dashboard')

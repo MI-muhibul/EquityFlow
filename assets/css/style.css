@@ -181,7 +181,8 @@ img { max-width: 100%; display: block; }
 .app-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: .3rem;
+    align-items: center;
+    gap: .35rem;
     flex: 1;
 }
 
@@ -204,6 +205,14 @@ img { max-width: 100%; display: block; }
     background: var(--brand);
     color: #fff;
     border-color: var(--brand);
+}
+
+.nav-link-logout {
+    color: var(--clr-red);
+}
+.nav-link-logout:hover {
+    color: #fff;
+    background: var(--clr-red-dark);
 }
 
 /* Header right-side controls */
