@@ -1,68 +1,89 @@
-/**
- * EquityFlow - Core Dark Theme Stylesheet
- * Tagline: Where Financial Records Flow with Accuracy
- *
- * Rules:
- * - 100% Zero JavaScript
- * - High Contrast (WCAG 2.1 AA/AAA compliance)
- * - Mobile-first responsive design
- * - Native Bangla font support
- */
+/* ==========================================================================
+   assets/css/style.css
+   EquityFlow – Dark High-Contrast Theme
+   "Where Financial Records Flow with Accuracy"
+   --------------------------------------------------------------------------
+   Rules:
+     • Zero JavaScript — pure CSS only
+     • WCAG 2.1 AA/AAA colour contrast throughout
+     • Mobile-first (base styles for small screens, media queries add desktop)
+     • Bangla-friendly font stack
+   ========================================================================== */
 
-/* -----------------------------------------------------------------------------
- * 1. CSS Custom Properties & Color Tokens
- * -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   1. CSS Custom Properties (Design Tokens)
+   -------------------------------------------------------------------------- */
 :root {
-    /* Backgrounds */
-    --bg-canvas: #090d16;
-    --bg-surface: #121929;
-    --bg-surface-elevated: #1a233a;
-    --bg-surface-hover: #222e4c;
-    --bg-input: #0c1220;
+    /* --- Backgrounds --- */
+    --bg-page:          #0b0f1a;   /* darkest – page canvas */
+    --bg-surface:       #131c2e;   /* cards, header, footer  */
+    --bg-elevated:      #1c2740;   /* table header, input bg */
+    --bg-hover:         #243354;   /* row hover, btn hover    */
 
-    /* Borders */
-    --border-subtle: #1f2b45;
-    --border-strong: #33446c;
-    --border-focus: #38bdf8;
+    /* --- Borders --- */
+    --border-dim:       #1f2d47;
+    --border-mid:       #2e4068;
+    --border-focus:     #38bdf8;   /* keyboard focus ring     */
 
-    /* Typography */
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --text-inverted: #090d16;
+    /* --- Text --- */
+    --text-high:        #f1f5f9;   /* headings / body copy    */
+    --text-mid:         #94a3b8;   /* labels, secondary copy  */
+    --text-low:         #64748b;   /* placeholders, captions  */
 
-    /* Semantic Status Accents */
-    --accent-primary: #10b981;
-    --accent-primary-hover: #059669;
-    --accent-success: #10b981;
-    --accent-success-bg: rgba(16, 185, 129, 0.15);
-    --accent-warning: #f59e0b;
-    --accent-warning-bg: rgba(245, 158, 11, 0.15);
-    --accent-danger: #ef4444;
-    --accent-danger-hover: #dc2626;
-    --accent-danger-bg: rgba(239, 68, 68, 0.15);
-    --accent-info: #38bdf8;
-    --accent-info-bg: rgba(56, 189, 248, 0.15);
+    /* --- Brand Accent --- */
+    --brand:            #10b981;   /* Emerald green           */
+    --brand-dark:       #059669;
 
-    /* Spacing & Geometry */
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-full: 9999px;
-    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
-    --shadow-elevated: 0 10px 30px rgba(0, 0, 0, 0.6);
+    /* --- Semantic Colours --- */
+    --clr-green:        #10b981;
+    --clr-green-bg:     rgba(16,185,129,.15);
+    --clr-green-border: rgba(16,185,129,.40);
 
-    /* Fonts */
-    --font-stack: 'SolaimanLipi', 'Kalpurush', 'Hind Siliguri', 'Noto Sans Bengali', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --clr-amber:        #f59e0b;
+    --clr-amber-bg:     rgba(245,158,11,.15);
+    --clr-amber-border: rgba(245,158,11,.40);
+
+    --clr-red:          #ef4444;
+    --clr-red-dark:     #dc2626;
+    --clr-red-bg:       rgba(239,68,68,.15);
+    --clr-red-border:   rgba(239,68,68,.40);
+
+    --clr-blue:         #38bdf8;
+    --clr-blue-bg:      rgba(56,189,248,.15);
+    --clr-blue-border:  rgba(56,189,248,.40);
+
+    /* --- Radii & Shadows --- */
+    --r-sm:  4px;
+    --r-md:  8px;
+    --r-lg:  12px;
+    --r-pill: 999px;
+
+    --shadow-card: 0 4px 18px rgba(0,0,0,.45);
+    --shadow-pop:  0 10px 32px rgba(0,0,0,.65);
+
+    /* --- Typography --- */
+    /*
+       Priority:
+         1. SolaimanLipi – most popular Bangla webfont (linked externally if served)
+         2. Hind Siliguri – Google Fonts, great Bangla support
+         3. Noto Sans Bengali – broad Unicode coverage fallback
+         4. System UI stack for Latin / fallback
+    */
+    --font-body: 'SolaimanLipi', 'Hind Siliguri', 'Noto Sans Bengali',
+                 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Code', 'Fira Code',
+                 SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-/* -----------------------------------------------------------------------------
- * 2. Reset & Global Base
- * -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   2. Reset & Base
+   -------------------------------------------------------------------------- */
 *, *::before, *::after {
     box-sizing: border-box;
-    margin: 0;
+    margin:  0;
     padding: 0;
 }
 
@@ -73,352 +94,455 @@ html {
 }
 
 body {
-    background-color: var(--bg-canvas);
-    color: var(--text-primary);
-    font-family: var(--font-stack);
-    line-height: 1.6;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    background-color: var(--bg-page);
+    color:            var(--text-high);
+    font-family:      var(--font-body);
+    line-height:      1.65;
+    min-height:       100vh;
+    display:          flex;
+    flex-direction:   column;
 }
 
 a {
-    color: var(--accent-info);
+    color: var(--clr-blue);
     text-decoration: none;
-    transition: color 0.15s ease;
 }
-
 a:hover, a:focus-visible {
     color: #7dd3fc;
     text-decoration: underline;
 }
 
-/* -----------------------------------------------------------------------------
- * 3. Layout Grid & Structure
- * -------------------------------------------------------------------------- */
-.app-header {
-    background-color: var(--bg-surface);
-    border-bottom: 1px solid var(--border-subtle);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+img { max-width: 100%; display: block; }
+
+/* Focus ring – keyboard users */
+:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 3px;
 }
 
-.header-container {
-    max-width: 1200px;
+
+/* --------------------------------------------------------------------------
+   3. App Shell – Header
+   -------------------------------------------------------------------------- */
+.app-header {
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-dim);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+}
+
+.header-inner {
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0.75rem 1rem;
+    padding: .75rem 1rem;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    gap: .75rem;
 }
 
-.brand-wrapper {
+/* Brand */
+.brand {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-}
-
-.brand-logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    background: linear-gradient(135deg, #10b981 0%, #0284c7 100%);
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 1.25rem;
-    border-radius: var(--radius-md);
+    gap: .55rem;
     text-decoration: none;
 }
 
-.brand-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.2;
+.brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--r-md);
+    background: linear-gradient(135deg, var(--brand) 0%, #0ea5e9 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
 }
 
-.brand-tagline {
-    font-size: 0.7rem;
-    color: var(--text-secondary);
+.brand-text strong {
+    display: block;
+    font-size: 1.1rem;
+    color: var(--text-high);
+    line-height: 1.1;
+}
+
+.brand-text small {
+    font-size: .68rem;
+    color: var(--text-mid);
     display: block;
 }
 
-/* Navigation */
+/* Primary Nav */
 .app-nav {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem;
+    gap: .3rem;
+    flex: 1;
 }
 
 .nav-link {
-    color: var(--text-secondary);
-    padding: 0.45rem 0.75rem;
-    border-radius: var(--radius-md);
-    font-size: 0.875rem;
+    padding: .4rem .75rem;
+    border-radius: var(--r-md);
+    font-size: .85rem;
     font-weight: 500;
+    color: var(--text-mid);
     border: 1px solid transparent;
     text-decoration: none;
+    white-space: nowrap;
 }
-
 .nav-link:hover {
-    color: var(--text-primary);
-    background-color: var(--bg-surface-elevated);
+    color: var(--text-high);
+    background: var(--bg-elevated);
     text-decoration: none;
 }
-
 .nav-link.active {
-    color: #ffffff;
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
 }
 
-.header-actions {
+/* Header right-side controls */
+.header-controls {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: .5rem;
+    flex-shrink: 0;
 }
 
-/* Language Toggle Pill */
-.lang-toggle-btn {
+/* Language toggle pill */
+.lang-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.4rem 0.85rem;
-    background-color: var(--bg-surface-elevated);
-    border: 1px solid var(--border-strong);
-    color: var(--text-primary);
-    border-radius: var(--radius-full);
-    font-size: 0.825rem;
+    gap: .3rem;
+    padding: .38rem .9rem;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--border-mid);
+    background: var(--bg-elevated);
+    color: var(--text-high);
+    font-size: .82rem;
     font-weight: 600;
     text-decoration: none;
 }
-
-.lang-toggle-btn:hover {
-    background-color: var(--bg-surface-hover);
-    border-color: var(--accent-info);
+.lang-btn:hover {
+    border-color: var(--clr-blue);
+    background: var(--bg-hover);
     text-decoration: none;
 }
 
-/* Main Container */
-.main-wrapper {
+
+/* --------------------------------------------------------------------------
+   4. Main Content Wrapper
+   -------------------------------------------------------------------------- */
+.main-wrap {
     flex: 1;
-    max-width: 1200px;
+    max-width: 1280px;
     width: 100%;
     margin: 0 auto;
     padding: 1.5rem 1rem;
 }
 
-/* -----------------------------------------------------------------------------
- * 4. Cards & Containers
- * -------------------------------------------------------------------------- */
-.card {
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: var(--shadow-card);
+
+/* --------------------------------------------------------------------------
+   5. App Shell – Footer
+   -------------------------------------------------------------------------- */
+.app-footer {
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-dim);
+    padding: 1.25rem 1rem;
+    color: var(--text-low);
+    font-size: .8rem;
 }
 
-.card-header {
+.footer-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+}
+
+
+/* --------------------------------------------------------------------------
+   6. Cards
+   -------------------------------------------------------------------------- */
+.card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-card);
+    margin-bottom: 1.5rem;
+}
+
+.card-head {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: .75rem;
     padding-bottom: 1rem;
     margin-bottom: 1.25rem;
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-dim);
 }
 
 .card-title {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--text-high);
 }
 
 .card-subtitle {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
+    font-size: .84rem;
+    color: var(--text-mid);
+    margin-top: .2rem;
 }
 
-.card-footer {
-    padding-top: 1rem;
-    margin-top: 1.25rem;
-    border-top: 1px solid var(--border-subtle);
+.card-foot {
     display: flex;
     justify-content: flex-end;
-    gap: 0.75rem;
+    flex-wrap: wrap;
+    gap: .6rem;
+    padding-top: 1rem;
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--border-dim);
 }
 
-/* Grid System */
+
+/* --------------------------------------------------------------------------
+   7. Responsive Grid
+   -------------------------------------------------------------------------- */
 .grid {
     display: grid;
     gap: 1.25rem;
+    grid-template-columns: 1fr;    /* mobile: 1 column */
+}
+
+/* Stats / summary cards row */
+.grid-stats {
+    display: grid;
+    gap: 1rem;
     grid-template-columns: 1fr;
 }
 
-@media (min-width: 640px) {
-    .grid-2 { grid-template-columns: repeat(2, 1fr); }
-    .grid-3 { grid-template-columns: repeat(2, 1fr); }
-    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 480px) {
+    .grid-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+    .grid-stats { grid-template-columns: repeat(4, 1fr); }
 }
 
-@media (min-width: 1024px) {
+/* General purpose grids */
+@media (min-width: 640px) {
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
     .grid-3 { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1100px) {
     .grid-4 { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* -----------------------------------------------------------------------------
- * 5. Buttons
- * -------------------------------------------------------------------------- */
+/* Stat card */
+.stat-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-lg);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+}
+
+.stat-label {
+    font-size: .8rem;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-high);
+    font-family: var(--font-mono);
+}
+
+.stat-value.due    { color: var(--clr-red);   }
+.stat-value.paid   { color: var(--clr-green); }
+.stat-value.total  { color: var(--clr-blue);  }
+
+
+/* --------------------------------------------------------------------------
+   8. Buttons
+   -------------------------------------------------------------------------- */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
-    padding: 0.625rem 1.25rem;
+    gap: .4rem;
+    padding: .6rem 1.2rem;
     font-family: inherit;
-    font-size: 0.9rem;
+    font-size: .9rem;
     font-weight: 600;
-    line-height: 1.25;
-    border-radius: var(--radius-md);
+    line-height: 1;
+    border-radius: var(--r-md);
     border: 1px solid transparent;
     cursor: pointer;
     text-decoration: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
 }
 
-.btn:hover {
-    text-decoration: none;
-}
+.btn:hover { text-decoration: none; }
 
-.btn:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-}
-
+/* Variants */
 .btn-primary {
-    background-color: var(--accent-primary);
-    color: #ffffff;
+    background: var(--brand);
+    color: #fff;
 }
-.btn-primary:hover {
-    background-color: var(--accent-primary-hover);
-}
+.btn-primary:hover { background: var(--brand-dark); }
 
 .btn-secondary {
-    background-color: var(--bg-surface-elevated);
-    color: var(--text-primary);
-    border-color: var(--border-strong);
+    background: var(--bg-elevated);
+    color: var(--text-high);
+    border-color: var(--border-mid);
 }
 .btn-secondary:hover {
-    background-color: var(--bg-surface-hover);
-    border-color: var(--border-focus);
+    background: var(--bg-hover);
+    border-color: var(--clr-blue);
 }
 
 .btn-danger {
-    background-color: var(--accent-danger);
-    color: #ffffff;
+    background: var(--clr-red);
+    color: #fff;
 }
-.btn-danger:hover {
-    background-color: var(--accent-danger-hover);
-}
+.btn-danger:hover { background: var(--clr-red-dark); }
 
 .btn-outline-danger {
-    background-color: transparent;
-    color: var(--accent-danger);
-    border-color: var(--accent-danger);
+    background: transparent;
+    color: var(--clr-red);
+    border-color: var(--clr-red);
 }
-.btn-outline-danger:hover {
-    background-color: var(--accent-danger-bg);
-}
+.btn-outline-danger:hover { background: var(--clr-red-bg); }
 
-.btn-sm {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8rem;
+.btn-ghost {
+    background: transparent;
+    color: var(--text-mid);
+    border-color: var(--border-dim);
 }
+.btn-ghost:hover { background: var(--bg-elevated); color: var(--text-high); }
 
-.btn-lg {
-    padding: 0.85rem 1.75rem;
-    font-size: 1.05rem;
-}
+/* Sizes */
+.btn-sm  { padding: .35rem .75rem; font-size: .8rem; }
+.btn-lg  { padding: .8rem 1.75rem; font-size: 1rem;  }
+.btn-block { width: 100%; }
 
-.btn-block {
-    display: flex;
-    width: 100%;
-}
 
-/* -----------------------------------------------------------------------------
- * 6. Forms & Inputs
- * -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   9. Forms
+   -------------------------------------------------------------------------- */
 .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.2rem;
 }
 
 .form-label {
     display: block;
-    margin-bottom: 0.4rem;
-    font-size: 0.9rem;
+    margin-bottom: .4rem;
+    font-size: .88rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-high);
 }
 
-.form-label .required {
-    color: var(--accent-danger);
-    margin-left: 0.2rem;
+/* Red asterisk for required fields */
+.form-label .req {
+    color: var(--clr-red);
+    margin-left: .15rem;
 }
 
+/* Text inputs, selects, textareas */
 .form-control {
     width: 100%;
-    padding: 0.65rem 0.85rem;
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
+    padding: .62rem .85rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-md);
+    color: var(--text-high);
     font-family: inherit;
-    font-size: 0.95rem;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    font-size: .95rem;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.form-control::placeholder {
+    color: var(--text-low);
 }
 
 .form-control:focus {
     outline: none;
     border-color: var(--border-focus);
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    box-shadow: 0 0 0 3px rgba(56,189,248,.2);
 }
 
-.form-control:disabled, .form-control[readonly] {
-    background-color: var(--bg-surface);
-    color: var(--text-muted);
+.form-control:disabled,
+.form-control[readonly] {
+    background: var(--bg-surface);
+    color: var(--text-low);
     cursor: not-allowed;
 }
 
+/* Textarea */
 textarea.form-control {
     resize: vertical;
-    min-height: 80px;
+    min-height: 90px;
 }
 
+/* Select arrow override */
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    padding-right: 2.5rem;
+}
+
+/* Hint text below input */
 .form-hint {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-top: 0.35rem;
+    font-size: .78rem;
+    color: var(--text-mid);
+    margin-top: .3rem;
 }
 
+/* Validation error text */
 .form-error {
-    font-size: 0.8rem;
-    color: var(--accent-danger);
-    margin-top: 0.35rem;
-    font-weight: 500;
+    font-size: .78rem;
+    color: var(--clr-red);
+    margin-top: .3rem;
+    font-weight: 600;
 }
 
-/* -----------------------------------------------------------------------------
- * 7. Flash Notifications & Alerts
- * -------------------------------------------------------------------------- */
+/* Two-column form row on tablet+ */
+.form-row {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+    .form-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* Hidden CSRF / type inputs */
+input[type="hidden"] { display: none; }
+
+
+/* --------------------------------------------------------------------------
+   10. Flash Messages / Alerts
+   -------------------------------------------------------------------------- */
 .flash-container {
     margin-bottom: 1.5rem;
 }
@@ -426,167 +550,254 @@ textarea.form-control {
 .alert {
     display: flex;
     align-items: flex-start;
-    gap: 0.75rem;
-    padding: 1rem 1.25rem;
-    border-radius: var(--radius-md);
-    margin-bottom: 0.75rem;
+    gap: .75rem;
+    padding: .9rem 1.1rem;
+    border-radius: var(--r-md);
     border: 1px solid transparent;
-    font-size: 0.925rem;
+    margin-bottom: .6rem;
+    font-size: .9rem;
     line-height: 1.5;
 }
 
 .alert-icon {
     font-weight: 700;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     line-height: 1;
+    flex-shrink: 0;
 }
 
-.alert-text {
-    flex: 1;
-}
+.alert-text { flex: 1; }
 
 .alert-success {
-    background-color: var(--accent-success-bg);
+    background: var(--clr-green-bg);
+    border-color: var(--clr-green-border);
     color: #6ee7b7;
-    border-color: rgba(16, 185, 129, 0.4);
 }
-
 .alert-error, .alert-danger {
-    background-color: var(--accent-danger-bg);
+    background: var(--clr-red-bg);
+    border-color: var(--clr-red-border);
     color: #fca5a5;
-    border-color: rgba(239, 68, 68, 0.4);
 }
-
 .alert-warning {
-    background-color: var(--accent-warning-bg);
+    background: var(--clr-amber-bg);
+    border-color: var(--clr-amber-border);
     color: #fcd34d;
-    border-color: rgba(245, 158, 11, 0.4);
 }
-
 .alert-info {
-    background-color: var(--accent-info-bg);
+    background: var(--clr-blue-bg);
+    border-color: var(--clr-blue-border);
     color: #7dd3fc;
-    border-color: rgba(56, 189, 248, 0.4);
 }
 
-/* -----------------------------------------------------------------------------
- * 8. Status Badges (Green, Amber, Red)
- * -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   11. Status Badges
+   -------------------------------------------------------------------------- */
 .badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.25rem 0.65rem;
-    border-radius: var(--radius-full);
-    font-size: 0.775rem;
+    gap: .25rem;
+    padding: .22rem .62rem;
+    border-radius: var(--r-pill);
+    font-size: .74rem;
     font-weight: 700;
     line-height: 1;
     border: 1px solid transparent;
     white-space: nowrap;
 }
 
-/* Green Badge: In Stock / Paid / Credit Settled */
+/* Green — In Stock / Settled */
 .badge-green, .badge-success {
-    background-color: var(--accent-success-bg);
+    background: var(--clr-green-bg);
     color: #34d399;
-    border-color: rgba(16, 185, 129, 0.4);
+    border-color: var(--clr-green-border);
 }
 
-/* Amber Badge: Low Stock Alert / Partial Due */
+/* Amber — Low Stock / Partial */
 .badge-amber, .badge-warning {
-    background-color: var(--accent-warning-bg);
+    background: var(--clr-amber-bg);
     color: #fbbf24;
-    border-color: rgba(245, 158, 11, 0.4);
+    border-color: var(--clr-amber-border);
 }
 
-/* Red Badge: Out of Stock / Unpaid / Limit Exceeded */
+/* Red — Out of Stock / Overdue */
 .badge-red, .badge-danger {
-    background-color: var(--accent-danger-bg);
+    background: var(--clr-red-bg);
     color: #f87171;
-    border-color: rgba(239, 68, 68, 0.4);
+    border-color: var(--clr-red-border);
 }
 
-/* Neutral Badge */
+/* Neutral */
 .badge-neutral {
-    background-color: var(--bg-surface-elevated);
-    color: var(--text-secondary);
-    border-color: var(--border-subtle);
+    background: var(--bg-elevated);
+    color: var(--text-mid);
+    border-color: var(--border-dim);
 }
 
-/* -----------------------------------------------------------------------------
- * 9. Responsive Data Tables
- * -------------------------------------------------------------------------- */
-.table-responsive {
+
+/* --------------------------------------------------------------------------
+   12. Tables (horizontal scroll on mobile)
+   -------------------------------------------------------------------------- */
+.table-wrap {
     width: 100%;
-    overflow-x: auto;
+    overflow-x: auto;              /* swipe left/right on small screens */
     -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-md);
     margin-bottom: 1rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
 }
 
 .table {
     width: 100%;
+    min-width: 560px;              /* prevents squash on narrow phones  */
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: .88rem;
     text-align: left;
+}
+
+.table th,
+.table td {
+    padding: .82rem 1rem;
+    border-bottom: 1px solid var(--border-dim);
     white-space: nowrap;
 }
 
-.table th, .table td {
-    padding: 0.85rem 1rem;
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.table th {
-    background-color: var(--bg-surface-elevated);
-    color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 0.825rem;
+.table thead th {
+    background: var(--bg-elevated);
+    color: var(--text-mid);
+    font-size: .78rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: .05em;
 }
 
-.table tr:last-child td {
+.table tbody tr:last-child td {
     border-bottom: none;
 }
 
 .table tbody tr:hover {
-    background-color: var(--bg-surface-hover);
+    background: var(--bg-hover);
 }
 
-.table .money-cell {
-    font-family: var(--font-mono);
+/* Money column — right-aligned monospace */
+.td-money {
     text-align: right;
+    font-family: var(--font-mono);
     font-weight: 600;
 }
 
-.table .due-positive {
-    color: #f87171; /* Outstanding Due */
+/* Colour helpers for balance cells */
+.td-due    { color: var(--clr-red);   }   /* outstanding */
+.td-paid   { color: var(--clr-green); }   /* cleared     */
+.td-credit { color: var(--clr-amber); }   /* credit given */
+
+
+/* --------------------------------------------------------------------------
+   13. Utility Classes
+   -------------------------------------------------------------------------- */
+/* Text colours */
+.text-muted   { color: var(--text-mid); }
+.text-danger  { color: var(--clr-red);   }
+.text-success { color: var(--clr-green); }
+.text-warning { color: var(--clr-amber); }
+.text-info    { color: var(--clr-blue);  }
+
+/* Text sizes */
+.text-sm  { font-size: .82rem; }
+.text-lg  { font-size: 1.1rem; }
+
+/* Monospace */
+.font-mono { font-family: var(--font-mono); }
+
+/* Display helpers */
+.d-flex   { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.align-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: .5rem; }
+.gap-2 { gap: 1rem;  }
+.gap-3 { gap: 1.5rem; }
+
+/* Spacing */
+.mt-1 { margin-top: .5rem;  }
+.mt-2 { margin-top: 1rem;   }
+.mt-3 { margin-top: 1.5rem; }
+.mb-1 { margin-bottom: .5rem;  }
+.mb-2 { margin-bottom: 1rem;   }
+.mb-3 { margin-bottom: 1.5rem; }
+
+/* Visually hidden – accessible labels */
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
 }
 
-.table .due-zero {
-    color: #34d399; /* Fully Paid */
+/* Divider */
+.divider {
+    border: none;
+    border-top: 1px solid var(--border-dim);
+    margin: 1.5rem 0;
 }
 
-/* -----------------------------------------------------------------------------
- * 10. Footer
- * -------------------------------------------------------------------------- */
-.app-footer {
-    background-color: var(--bg-surface);
-    border-top: 1px solid var(--border-subtle);
-    padding: 1.5rem 1rem;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.825rem;
-}
 
-.footer-content {
-    max-width: 1200px;
-    margin: 0 auto;
+/* --------------------------------------------------------------------------
+   14. Login Page (centred card)
+   -------------------------------------------------------------------------- */
+.login-wrap {
+    min-height: 100vh;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--bg-page);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-lg);
+    padding: 2.25rem 2rem;
+    box-shadow: var(--shadow-pop);
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.login-logo .brand-mark {
+    width: 56px;
+    height: 56px;
+    font-size: 2rem;
+    margin: 0 auto .75rem;
+}
+
+.login-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-high);
+}
+
+.login-subtitle {
+    font-size: .84rem;
+    color: var(--text-mid);
+    margin-top: .25rem;
+}
+
+
+/* --------------------------------------------------------------------------
+   15. Print Styles (no colour ink wasted)
+   -------------------------------------------------------------------------- */
+@media print {
+    .app-header, .app-footer, .btn, .lang-btn { display: none !important; }
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .card { box-shadow: none; border: 1px solid #ccc; }
+    .table th { background: #eee !important; color: #000 !important; }
+    a { color: #000; text-decoration: underline; }
 }
