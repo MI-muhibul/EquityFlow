@@ -1,0 +1,592 @@
+/**
+ * EquityFlow - Core Dark Theme Stylesheet
+ * Tagline: Where Financial Records Flow with Accuracy
+ *
+ * Rules:
+ * - 100% Zero JavaScript
+ * - High Contrast (WCAG 2.1 AA/AAA compliance)
+ * - Mobile-first responsive design
+ * - Native Bangla font support
+ */
+
+/* -----------------------------------------------------------------------------
+ * 1. CSS Custom Properties & Color Tokens
+ * -------------------------------------------------------------------------- */
+:root {
+    /* Backgrounds */
+    --bg-canvas: #090d16;
+    --bg-surface: #121929;
+    --bg-surface-elevated: #1a233a;
+    --bg-surface-hover: #222e4c;
+    --bg-input: #0c1220;
+
+    /* Borders */
+    --border-subtle: #1f2b45;
+    --border-strong: #33446c;
+    --border-focus: #38bdf8;
+
+    /* Typography */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-inverted: #090d16;
+
+    /* Semantic Status Accents */
+    --accent-primary: #10b981;
+    --accent-primary-hover: #059669;
+    --accent-success: #10b981;
+    --accent-success-bg: rgba(16, 185, 129, 0.15);
+    --accent-warning: #f59e0b;
+    --accent-warning-bg: rgba(245, 158, 11, 0.15);
+    --accent-danger: #ef4444;
+    --accent-danger-hover: #dc2626;
+    --accent-danger-bg: rgba(239, 68, 68, 0.15);
+    --accent-info: #38bdf8;
+    --accent-info-bg: rgba(56, 189, 248, 0.15);
+
+    /* Spacing & Geometry */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-elevated: 0 10px 30px rgba(0, 0, 0, 0.6);
+
+    /* Fonts */
+    --font-stack: 'SolaimanLipi', 'Kalpurush', 'Hind Siliguri', 'Noto Sans Bengali', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* -----------------------------------------------------------------------------
+ * 2. Reset & Global Base
+ * -------------------------------------------------------------------------- */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-stack);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    color: var(--accent-info);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+a:hover, a:focus-visible {
+    color: #7dd3fc;
+    text-decoration: underline;
+}
+
+/* -----------------------------------------------------------------------------
+ * 3. Layout Grid & Structure
+ * -------------------------------------------------------------------------- */
+.app-header {
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.brand-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.brand-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #10b981 0%, #0284c7 100%);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1.25rem;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+}
+
+.brand-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.brand-tagline {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    display: block;
+}
+
+/* Navigation */
+.app-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.nav-link {
+    color: var(--text-secondary);
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+    text-decoration: none;
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-surface-elevated);
+    text-decoration: none;
+}
+
+.nav-link.active {
+    color: #ffffff;
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Language Toggle Pill */
+.lang-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    border-radius: var(--radius-full);
+    font-size: 0.825rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.lang-toggle-btn:hover {
+    background-color: var(--bg-surface-hover);
+    border-color: var(--accent-info);
+    text-decoration: none;
+}
+
+/* Main Container */
+.main-wrapper {
+    flex: 1;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+}
+
+/* -----------------------------------------------------------------------------
+ * 4. Cards & Containers
+ * -------------------------------------------------------------------------- */
+.card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-card);
+}
+
+.card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.card-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.card-footer {
+    padding-top: 1rem;
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Grid System */
+.grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* -----------------------------------------------------------------------------
+ * 5. Buttons
+ * -------------------------------------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.625rem 1.25rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.25;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover {
+    text-decoration: none;
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+}
+
+.btn-primary {
+    background-color: var(--accent-primary);
+    color: #ffffff;
+}
+.btn-primary:hover {
+    background-color: var(--accent-primary-hover);
+}
+
+.btn-secondary {
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+}
+.btn-secondary:hover {
+    background-color: var(--bg-surface-hover);
+    border-color: var(--border-focus);
+}
+
+.btn-danger {
+    background-color: var(--accent-danger);
+    color: #ffffff;
+}
+.btn-danger:hover {
+    background-color: var(--accent-danger-hover);
+}
+
+.btn-outline-danger {
+    background-color: transparent;
+    color: var(--accent-danger);
+    border-color: var(--accent-danger);
+}
+.btn-outline-danger:hover {
+    background-color: var(--accent-danger-bg);
+}
+
+.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.btn-lg {
+    padding: 0.85rem 1.75rem;
+    font-size: 1.05rem;
+}
+
+.btn-block {
+    display: flex;
+    width: 100%;
+}
+
+/* -----------------------------------------------------------------------------
+ * 6. Forms & Inputs
+ * -------------------------------------------------------------------------- */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-label .required {
+    color: var(--accent-danger);
+    margin-left: 0.2rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.form-control:disabled, .form-control[readonly] {
+    background-color: var(--bg-surface);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.35rem;
+}
+
+.form-error {
+    font-size: 0.8rem;
+    color: var(--accent-danger);
+    margin-top: 0.35rem;
+    font-weight: 500;
+}
+
+/* -----------------------------------------------------------------------------
+ * 7. Flash Notifications & Alerts
+ * -------------------------------------------------------------------------- */
+.flash-container {
+    margin-bottom: 1.5rem;
+}
+
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 0.75rem;
+    border: 1px solid transparent;
+    font-size: 0.925rem;
+    line-height: 1.5;
+}
+
+.alert-icon {
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.alert-text {
+    flex: 1;
+}
+
+.alert-success {
+    background-color: var(--accent-success-bg);
+    color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.alert-error, .alert-danger {
+    background-color: var(--accent-danger-bg);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.alert-warning {
+    background-color: var(--accent-warning-bg);
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.alert-info {
+    background-color: var(--accent-info-bg);
+    color: #7dd3fc;
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+/* -----------------------------------------------------------------------------
+ * 8. Status Badges (Green, Amber, Red)
+ * -------------------------------------------------------------------------- */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.775rem;
+    font-weight: 700;
+    line-height: 1;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+/* Green Badge: In Stock / Paid / Credit Settled */
+.badge-green, .badge-success {
+    background-color: var(--accent-success-bg);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+/* Amber Badge: Low Stock Alert / Partial Due */
+.badge-amber, .badge-warning {
+    background-color: var(--accent-warning-bg);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Red Badge: Out of Stock / Unpaid / Limit Exceeded */
+.badge-red, .badge-danger {
+    background-color: var(--accent-danger-bg);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* Neutral Badge */
+.badge-neutral {
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-secondary);
+    border-color: var(--border-subtle);
+}
+
+/* -----------------------------------------------------------------------------
+ * 9. Responsive Data Tables
+ * -------------------------------------------------------------------------- */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table th, .table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.table th {
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.825rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.table tbody tr:hover {
+    background-color: var(--bg-surface-hover);
+}
+
+.table .money-cell {
+    font-family: var(--font-mono);
+    text-align: right;
+    font-weight: 600;
+}
+
+.table .due-positive {
+    color: #f87171; /* Outstanding Due */
+}
+
+.table .due-zero {
+    color: #34d399; /* Fully Paid */
+}
+
+/* -----------------------------------------------------------------------------
+ * 10. Footer
+ * -------------------------------------------------------------------------- */
+.app-footer {
+    background-color: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.825rem;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
