@@ -1,0 +1,9 @@
+# EquityFlow — AI Session Log
+# Records AI-assisted development sessions, decisions, and push notes.
+# Format: [DATE] Push NN — Summary of changes made
+
+[2026-11-09] Push 01 — Project skeleton, directory structure, front controller router, .gitignore, README skeleton
+[2026-11-09] Push 02 — InnoDB utf8mb4 schema (8 tables), seed data (1 admin, 5 customers, 8 products, 8 transactions)
+[2026-11-09] Push 03 — PDO singleton, config.sample.php, constants.php, secure session manager, db-check diagnostic page
+[2026-11-10] Push 04 — Bilingual lang packs (128 keys bn/en), config/lang.php engine with t(), _e(), set_lang(), fallback chain
+[2026-11-10] Push 05 — Master layout header/footer, dark WCAG-compliant CSS, format_money(), e(), flash_set()/flash_show()
