@@ -120,3 +120,29 @@ function terminate_session(): void {
         session_destroy();
     }
 }
+
+/**
+ * Generate or retrieve the CSRF defense token for the current session.
+ */
+function csrf_token(): string {
+    if (session_status() === PHP_SESSION_NONE) {
+        init_secure_session();
+    }
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return (string)$_SESSION['csrf_token'];
+}
+
+/**
+ * Validate submitted CSRF token using constant-time string comparison.
+ */
+function csrf_verify(?string $token): bool {
+    if (session_status() === PHP_SESSION_NONE) {
+        init_secure_session();
+    }
+    if (empty($_SESSION['csrf_token']) || empty($token)) {
+        return false;
+    }
+    return hash_equals((string)$_SESSION['csrf_token'], (string)$token);
+}
