@@ -210,7 +210,7 @@ Built in 20 incremental pushes:
 - [x] 6. Login with `password_hash`
 - [x] 7. Lockout, timeout, CSRF, change password
 - [x] 8. Dashboard shell and navigation
-- [ ] 9. Customers: add and list
+- [x] 9. Customers: add and list
 - [ ] 10. Customers: edit, view, delete
 - [ ] 11. Credit sales and payments with rollback safety
 - [ ] 12. History with running balance and receipt

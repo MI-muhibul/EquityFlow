@@ -49,4 +49,13 @@ class DashboardController {
         require __DIR__ . '/../views/dashboard/index.php';
         require __DIR__ . '/../views/layout/footer.php';
     }
+
+    /**
+     * handleRequest() — called by the front controller.
+     * Dashboard has no sub-actions; always delegates to index().
+     */
+    public function handleRequest(): void
+    {
+        $this->index();
+    }
 }

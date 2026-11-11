@@ -100,6 +100,10 @@ return [
     'error_csrf_invalid'      => 'Security token invalid or expired. Please submit the form again.',
     'error_stock_insufficient'=> 'Insufficient product stock available for this sale.',
     'error_customer_has_due'  => 'Cannot delete customer with an outstanding due balance.',
+    'error_credit_limit_invalid' => 'Credit limit must be a number, 0 or greater (e.g. 500.00).',
+    'customer_add_title'      => 'Register New Customer',
+    'label_join_date'         => 'Member Since',
+    'customer_count'          => 'Total Customers',
 
     // Success Messages
     'msg_saved_success'       => 'Record saved successfully.',

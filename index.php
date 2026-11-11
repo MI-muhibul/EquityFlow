@@ -212,12 +212,13 @@ require_once $controllerFile;
 
 if (class_exists($controllerClass)) {
     $controller = new $controllerClass();
-    
-    // Execute default controller action
-    if (method_exists($controller, 'index')) {
-        $controller->index();
-    } elseif (method_exists($controller, 'handleRequest')) {
+
+    // If the controller exposes handleRequest(), it manages its own sub-actions
+    // (e.g. ?action=create, ?action=edit). Otherwise fall back to index().
+    if (method_exists($controller, 'handleRequest')) {
         $controller->handleRequest();
+    } elseif (method_exists($controller, 'index')) {
+        $controller->index();
     }
 } else {
     $title = t('controller_missing');
