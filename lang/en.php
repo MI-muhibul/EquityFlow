@@ -130,11 +130,17 @@ return [
 
     // Transaction & Khata Module
     'txn_title'               => 'Transaction History',
+    'txn_new_title'           => 'Record New Transaction',
     'txn_type_credit'         => 'Credit Given (Baki)',
     'txn_type_payment'        => 'Payment Received (Joma)',
     'txn_voucher_no'          => 'Receipt / Voucher #',
     'txn_running_balance'     => 'Running Balance',
     'txn_empty_list'          => 'No transactions recorded yet.',
+    'txn_select_customer'     => '-- Select Customer --',
+    'error_payment_exceeds_balance' => 'Payment amount cannot exceed the current customer balance.',
+    'error_customer_not_found'=> 'Selected customer was not found.',
+    'error_invalid_txn_type'  => 'Invalid transaction type selected.',
+    'msg_txn_recorded'        => 'Transaction recorded successfully.',
 
     // Product & Stock Module
     'product_title'           => 'Product & Inventory Stock',
