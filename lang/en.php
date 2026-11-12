@@ -127,6 +127,15 @@ return [
     'customer_zero_balance'   => 'Account Settled (No Due)',
     'customer_empty_list'     => 'No customers added yet. Click "Add Customer" to start.',
     'customer_delete_confirm' => 'Are you sure you want to delete this customer? This action cannot be undone.',
+    'customer_profile_title'  => 'Customer Ledger Profile',
+    'customer_history_title'  => 'Customer Khata History',
+    'btn_view_history'        => 'Ledger History',
+    'btn_view_profile'        => 'Profile',
+    'receipt_title'           => 'Transaction Receipt',
+    'receipt_voucher_no'      => 'Receipt #',
+    'receipt_balance_after'   => 'Balance After Transaction',
+    'receipt_shop_info'       => 'Shop Details',
+    'receipt_not_found'       => 'Receipt or transaction not found.',
 
     // Transaction & Khata Module
     'txn_title'               => 'Transaction History',

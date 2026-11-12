@@ -200,23 +200,40 @@ class Transaction
     }
 
     /**
-     * Get transactions for a specific customer.
+     * Get transactions for a specific customer with running balance computed.
+     * Returned newest first.
      *
      * @param int $custId
      * @return array
      */
-    public static function findByCustomer(int $custId): array
+    public static function findByCustomerWithRunningBalance(int $custId): array
     {
         $pdo = Database::getConnection();
+        // Fetch oldest first to compute running balance from the start
         $stmt = $pdo->prepare(
-            'SELECT * FROM transactions WHERE cust_id = :id ORDER BY txn_id DESC'
+            'SELECT * FROM transactions WHERE cust_id = :id ORDER BY txn_id ASC'
         );
         $stmt->execute([':id' => $custId]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+
+        $running = 0.0;
+        foreach ($rows as &$row) {
+            $amt = (float)$row['amount'];
+            if ($row['type'] === 'credit') {
+                $running += $amt;
+            } else {
+                $running -= $amt;
+            }
+            $row['running_balance'] = round($running, 2);
+        }
+        unset($row);
+
+        // Reverse to display newest first
+        return array_reverse($rows);
     }
 
     /**
-     * Find a single transaction by primary ID with customer info.
+     * Find a single transaction by primary ID with customer info and balance after.
      *
      * @param int $txnId
      * @return array|false
@@ -225,13 +242,33 @@ class Transaction
     {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
-            'SELECT t.*, c.name AS customer_name, c.phone AS customer_phone, c.balance, c.credit_limit
+            'SELECT t.*, c.name AS customer_name, c.phone AS customer_phone, c.address AS customer_address, c.balance, c.credit_limit
              FROM transactions t
              JOIN customers c ON t.cust_id = c.cust_id
              WHERE t.txn_id = :id
              LIMIT 1'
         );
         $stmt->execute([':id' => $txnId]);
-        return $stmt->fetch();
+        $txn = $stmt->fetch();
+
+        if (!$txn) {
+            return false;
+        }
+
+        // Calculate balance after this transaction occurred:
+        // Sum of all credits up to this txn_id minus sum of all payments up to this txn_id
+        $stmtBal = $pdo->prepare(
+            "SELECT 
+                COALESCE(SUM(CASE WHEN type = 'credit' THEN amount ELSE -amount END), 0.00) AS balance_after
+             FROM transactions 
+             WHERE cust_id = :cust_id AND txn_id <= :txn_id"
+        );
+        $stmtBal->execute([
+            ':cust_id' => $txn['cust_id'],
+            ':txn_id'  => $txn['txn_id'],
+        ]);
+        $txn['balance_after'] = (float)$stmtBal->fetchColumn();
+
+        return $txn;
     }
 }

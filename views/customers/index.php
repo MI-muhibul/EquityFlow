@@ -139,12 +139,18 @@ declare(strict_types=1);
                                 <?= e(date('d M Y', strtotime($cust['join_date']))) ?>
                             </td>
 
-                            <!-- Action links (Edit / View) -->
+                            <!-- Action links (Profile / History / Edit) -->
                             <td>
-                                <a href="index.php?page=customers&amp;action=edit&amp;id=<?= (int)$cust['cust_id'] ?>"
-                                   class="btn btn-ghost btn-sm">
-                                    <?= e(t('btn_edit')) ?>
-                                </a>
+                                <div class="d-flex gap-05">
+                                    <a href="index.php?page=customers&amp;action=profile&amp;id=<?= (int)$cust['cust_id'] ?>"
+                                       class="btn btn-ghost btn-sm">
+                                        <?= e(t('btn_view_profile')) ?>
+                                    </a>
+                                    <a href="index.php?page=customers&amp;action=history&amp;id=<?= (int)$cust['cust_id'] ?>"
+                                       class="btn btn-ghost btn-sm">
+                                        <?= e(t('btn_view_history')) ?>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -128,6 +128,15 @@ return [
     'customer_zero_balance'   => 'হিসাব পরিশোধ (কোনো বাকি নেই)',
     'customer_empty_list'     => 'এখনও কোনো কাস্টমার যুক্ত করা হয়নি। "নতুন কাস্টমার" বাটনে ক্লিক করুন।',
     'customer_delete_confirm' => 'আপনি কি নিশ্চিতভাবে এই কাস্টমারকে মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।',
+    'customer_profile_title'  => 'কাস্টমার লেজার প্রোফাইল',
+    'customer_history_title'  => 'কাস্টমারের খাতার লেনদেনের ইতিহাস',
+    'btn_view_history'        => 'খাতার ইতিহাস',
+    'btn_view_profile'        => 'প্রোফাইল',
+    'receipt_title'           => 'লেনদেন রশিদ',
+    'receipt_voucher_no'      => 'রশিদ নং',
+    'receipt_balance_after'   => 'লেনদেন পরবর্তী ব্যালেন্স',
+    'receipt_shop_info'       => 'দোকানের বিবরণ',
+    'receipt_not_found'       => 'রশিদ বা লেনদেন পাওয়া যায়নি।',
 
     // লেনদেন ও খাতা মডিউল
     'txn_title'               => 'লেনদেনের বিস্তারিত ইতিহাস',
