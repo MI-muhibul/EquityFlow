@@ -154,9 +154,23 @@ return [
 
     // পণ্য ও ইনভেন্টরি মডিউল
     'product_title'           => 'পণ্যের তালিকা ও বর্তমান মজুদ',
+    'product_add_title'       => 'নতুন পণ্য যুক্ত করুন',
+    'product_edit_title'      => 'পণ্যের বিবরণ সম্পাদনা',
+    'product_stock_title'     => 'পণ্যের মজুদ সমন্বয় করুন',
     'product_profit_per_unit' => 'ইউনিট প্রতি লাভ',
     'product_margin'          => 'লাভের হার (%)',
     'product_empty_list'      => 'দোকানের ইনভেন্টরিতে কোনো পণ্য পাওয়া যায়নি।',
+    'product_status'          => 'মজুদ অবস্থা',
+    'btn_update_stock'        => 'স্টক আপডেট',
+    'label_stock_change'      => 'মজুদ সমন্বয়ের ধরন',
+    'stock_action_set'        => 'সরাসরি নির্দিষ্ট পরিমাণ সেট করুন',
+    'stock_action_add'        => 'নতুন পণ্য যোগ করুন (পুনরায় মজুদ)',
+    'stock_action_subtract'   => 'মজুদ থেকে বাদ দিন (ক্ষতি / নষ্ট)',
+    'msg_product_added'       => 'পণ্য সফলভাবে ইনভেন্টরিতে যুক্ত হয়েছে।',
+    'msg_product_updated'     => 'পণ্যের তথ্য সফলভাবে আপডেট হয়েছে।',
+    'msg_stock_updated'       => 'পণ্যের মজুদ সফলভাবে আপডেট হয়েছে।',
+    'error_product_not_found' => 'পণ্যটি খুঁজে পাওয়া যায়নি।',
+    'error_invalid_number'    => 'মূল্য এবং মজুদের পরিমাণ অবশ্যই ০ বা তার বেশি অঋণাত্মক সংখ্যা হতে হবে।',
 
     // হিসাব রিপোর্ট মডিউল
     'report_title'            => 'মাসিক আর্থিক হিসাবের সারাংশ',

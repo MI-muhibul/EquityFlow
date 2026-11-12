@@ -153,9 +153,23 @@ return [
 
     // Product & Stock Module
     'product_title'           => 'Product & Inventory Stock',
+    'product_add_title'       => 'Add New Product',
+    'product_edit_title'      => 'Edit Product Details',
+    'product_stock_title'     => 'Update Inventory Stock',
     'product_profit_per_unit' => 'Profit / Unit',
     'product_margin'          => 'Profit Margin (%)',
     'product_empty_list'      => 'No products found in inventory.',
+    'product_status'          => 'Stock Status',
+    'btn_update_stock'        => 'Adjust Stock',
+    'label_stock_change'      => 'Stock Adjustment Type',
+    'stock_action_set'        => 'Set Exact Stock',
+    'stock_action_add'        => 'Add to Stock (Restock)',
+    'stock_action_subtract'   => 'Deduct from Stock (Damage / Loss)',
+    'msg_product_added'       => 'Product successfully added to inventory.',
+    'msg_product_updated'     => 'Product details updated successfully.',
+    'msg_stock_updated'       => 'Product stock updated successfully.',
+    'error_product_not_found' => 'Product was not found.',
+    'error_invalid_number'    => 'Price and stock values must be non-negative numbers (0 or greater).',
 
     // Report Module
     'report_title'            => 'Monthly Financial Summary',
