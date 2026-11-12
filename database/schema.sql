@@ -26,6 +26,7 @@ CREATE TABLE `users` (
 -- -----------------------------------------------------------------------------
 -- 2. Table: customers
 -- Stores customer profiles, balances (due/baki), and credit limits
+-- Indexes: customers.name, customers.phone
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `customers`;
 CREATE TABLE `customers` (
@@ -44,6 +45,7 @@ CREATE TABLE `customers` (
 -- -----------------------------------------------------------------------------
 -- 3. Table: transactions
 -- Records daily Khata entries (credit/baki vs payment/joma)
+-- Indexes: transactions.created_at, transactions.cust_id
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `transactions`;
 CREATE TABLE `transactions` (
