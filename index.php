@@ -42,9 +42,10 @@ $routeWhitelist = [
     'login'        => 'AuthController',
     'signup'       => 'AuthController',
     'logout'       => 'AuthController',
-    'home'         => 'AuthController',
-    'google-login' => 'AuthController',
-    'db-check'     => 'DbCheckController',
+    'home'            => 'AuthController',
+    'google-login'    => 'AuthController',
+    'google-callback' => 'AuthController',
+    'db-check'        => 'DbCheckController',
 ];
 
 // Determine the requested page from GET parameter (default: 'dashboard')

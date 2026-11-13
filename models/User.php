@@ -50,6 +50,101 @@ class User {
     }
 
     /**
+     * Look up a user account by unique Google OAuth ID (sub).
+     *
+     * @param string $googleId
+     * @return array<string, mixed>|null User record or null if not found
+     */
+    public static function findByGoogleId(string $googleId): ?array {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE google_id = :google_id LIMIT 1');
+        $stmt->execute(['google_id' => trim($googleId)]);
+        $user = $stmt->fetch();
+        return $user ?: null;
+    }
+
+    /**
+     * Link a Google OAuth account to an existing user matched by email.
+     * Sets auth_provider to 'both', records google_id, and updates avatar if missing.
+     *
+     * @param int $userId
+     * @param string $googleId
+     * @param string|null $avatarUrl
+     * @return bool
+     */
+    public static function linkGoogleAccount(int $userId, string $googleId, ?string $avatarUrl = null): bool {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('
+            UPDATE users
+            SET google_id = :google_id,
+                auth_provider = CASE WHEN auth_provider = "local" THEN "both" ELSE auth_provider END,
+                avatar_url = COALESCE(avatar_url, :avatar_url),
+                last_login = NOW()
+            WHERE user_id = :id
+        ');
+        return $stmt->execute([
+            'google_id'  => trim($googleId),
+            'avatar_url' => $avatarUrl,
+            'id'         => $userId,
+        ]);
+    }
+
+    /**
+     * Create a new shop owner account from Google OAuth 2.0 profile.
+     * password_hash is NULL, auth_provider is 'google'. No extra email verification step.
+     *
+     * @param array{
+     *     name: string,
+     *     email: string,
+     *     google_id: string,
+     *     avatar_url?: string|null,
+     *     shop_name?: string|null
+     * } $data
+     * @return int Newly created user_id
+     */
+    public static function createFromGoogle(array $data): int {
+        $pdo = Database::getConnection();
+
+        $name      = trim((string)($data['name'] ?? 'Shop Owner'));
+        $email     = strtolower(trim((string)$data['email']));
+        $googleId  = trim((string)$data['google_id']);
+        $avatarUrl = !empty($data['avatar_url']) ? trim((string)$data['avatar_url']) : null;
+        $shopName  = !empty($data['shop_name']) ? trim((string)$data['shop_name']) : ($name . ' স্টোর');
+
+        $stmt = $pdo->prepare('
+            INSERT INTO users (
+                name, email, password_hash, google_id, avatar_url,
+                auth_provider, pin_hash, shop_name, failed_attempts, locked, created_at, last_login
+            ) VALUES (
+                :name, :email, NULL, :google_id, :avatar_url,
+                "google", NULL, :shop_name, 0, 0, NOW(), NOW()
+            )
+        ');
+
+        $stmt->execute([
+            'name'       => $name,
+            'email'      => $email,
+            'google_id'  => $googleId,
+            'avatar_url' => $avatarUrl,
+            'shop_name'  => $shopName,
+        ]);
+
+        return (int)$pdo->lastInsertId();
+    }
+
+    /**
+     * Touch last_login timestamp on successful login.
+     *
+     * @param int $userId
+     * @return void
+     */
+    public static function touchLastLogin(int $userId): void {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('UPDATE users SET last_login = NOW() WHERE user_id = :id');
+        $stmt->execute(['id' => $userId]);
+    }
+
+    /**
      * Create a new shop owner user account.
      * Generates secure bcrypt password_hash and optional pin_hash.
      *
