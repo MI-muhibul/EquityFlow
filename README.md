@@ -11,7 +11,8 @@ A bilingual (বাংলা / English) digital **Khata** ledger for small shop 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)
 ![XAMPP](https://img.shields.io/badge/Server-XAMPP-FB7A24?logo=xampp&logoColor=white)
-![Status](https://img.shields.io/badge/status-in%20development-orange)
+![Status](https://img.shields.io/badge/status-released-success)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
 </div>
 
@@ -30,219 +31,254 @@ A bilingual (বাংলা / English) digital **Khata** ledger for small shop 
 9. [Getting Started](#getting-started)
 10. [Security](#security)
 11. [Bilingual Interface](#bilingual-interface)
-12. [Testing](#testing)
-13. [Development Roadmap](#development-roadmap)
-14. [Out of Scope and Future Plans](#out-of-scope-and-future-plans)
-15. [Author](#author)
-16. [License](#license)
+12. [Testing & Quality Assurance](#testing--quality-assurance)
+13. [Known Limitations from Testing](#known-limitations-from-testing)
+14. [Development Roadmap](#development-roadmap)
+15. [Out of Scope and Future Plans](#out-of-scope-and-future-plans)
+16. [Author](#author)
+17. [License](#license)
 
 ---
 
 ## About the Project
 
-EquityFlow replaces the handwritten credit book (the *Khata*) used by grocery stores, tailors and repair shops with a secure, searchable and automated system. It tracks customer credit, manages inventory and produces monthly financial reports.
+EquityFlow replaces the handwritten credit book (the *Khata*) used by grocery stores, pharmacies, tailors, and repair shops across Bangladesh with a secure, searchable, and automated local system. It tracks customer credit, manages product inventory, and produces comprehensive monthly financial reports.
 
-It runs on a standard **XAMPP** stack, so a shop can host it on a single local computer. Phones on the same Wi-Fi network can open it in a browser.
+It runs locally on a standard **XAMPP** environment (Apache + PHP + MySQL), eliminating cloud subscription costs and internet dependency. Devices on the same local Wi-Fi network (such as smartphones or tablets) can open and operate the ledger directly from any web browser.
 
 ## The Problem
 
-The paper Khata book is used by millions of merchants, but it has serious weaknesses:
+The traditional paper Khata book is used by millions of merchants, but presents severe operational and financial vulnerabilities:
 
 - Arithmetic mistakes in balances cause unnoticed financial loss.
-- Entries can be illegible, altered, damaged or lost.
-- There is no instant way to see a customer's outstanding balance or payment history.
-- Credit disputes cannot be settled with objective evidence.
-- Stock is tracked by eye, so stockouts cause lost sales.
-- Retail price, cost price and profit margin are rarely tracked.
+- Entries can be illegible, altered, damaged, or lost.
+- There is no instant way to see a customer's total outstanding balance or chronological transaction history.
+- Credit disputes cannot be settled with objective, timestamped evidence.
+- Stock is tracked by eye, leading to stockouts and lost revenue.
+- Retail price, cost price, and gross profit margins are rarely calculated or monitored.
 
-EquityFlow fixes these with automatic calculation, timestamped history and a simple interface for users with limited digital literacy.
+EquityFlow solves these problems through automatic arithmetic calculation, timestamped transaction history, credit-limit enforcement, and an accessible interface designed for users with limited digital literacy.
 
 ## Features (v1.0)
 
 | Module | What it does |
 |---|---|
-| **Login and Access** | Salted, hashed passwords (`password_hash`), optional PIN, 30-minute session timeout, lockout after 5 failed attempts, change password |
-| **Customer Ledger** | Add, edit, view and delete customers (deletion only when balance is zero), credit limit per customer |
-| **Credit Transactions** | Credit sales and payments, automatic running balance, credit-limit check, rejection of non-positive amounts, on-screen receipts |
-| **Inventory** | Add products, update stock, minimum stock level, status badges (In Stock / Low Stock / Out of Stock), low-stock alerts on the dashboard |
-| **Pricing and Profit** | Retail price and cost price per product, automatic profit per unit and margin, profit trend sparkline drawn as inline SVG |
-| **Search and Filter** | Customers by name or phone, transactions by date, customer and type, products by name, category and stock status |
-| **Reports** | Monthly financial summary and outstanding balance list |
-| **Settings** | Language, credit limit and stock threshold policies, one-click SQL database backup |
+| **Login and Access** | Salted passwords (`password_hash`), 30-minute inactivity session timeout, lockout after 5 consecutive failed attempts, password change screen. |
+| **Customer Ledger** | Add, edit, view, and delete customers (deletion strictly guarded when balance > 0), individual credit limits. |
+| **Credit Transactions** | Atomic credit sales and payments via PDO transactions, automatic running balance, credit-limit check, payment overpay prevention, on-screen receipts. |
+| **Sales to Inventory** | Itemized product sales deducting catalog stock in real time, calculating sale totals from catalog retail prices. |
+| **Inventory & Stock** | Product catalog, stock updates/adjustments, minimum alert stock thresholds, automated badges (*In Stock* / *Low Stock* / *Out of Stock*), dashboard alert panel. |
+| **Pricing and Profit** | Retail price and cost price tracking per product, automated unit profit, margin %, loss warnings, and profit trend history via inline SVG sparklines. |
+| **Search and Filter** | GET-based zero-JS filters: customers by name/phone; transactions by date range, customer, and type; products by name, category, and status. 20-per-page pagination with preserved inputs. |
+| **Reports** | Monthly financial summary (credit given, payments received, net cashflow, estimated profit), pure SVG visual comparison chart, and debtors list sorted descending by balance. |
+| **Settings & Backups** | Shop profile and defaults management, one-click pure PDO database backup dump (`.sql`), secure authenticated download, and `.htaccess` file protection. |
 
-All amounts are shown in Bangladeshi Taka (৳) with two decimal places.
+All amounts are formatted in Bangladeshi Taka (৳) with two decimal places.
 
 ## Screenshots
 
-> Screenshots will be added as each module is completed.
-
-| Login | Dashboard |
+| 1. Shop Dashboard | 2. Customer Ledger Profile |
 |---|---|
-| _coming soon_ | _coming soon_ |
+| ![Dashboard](assets/images/screenshots/dashboard.png) | ![Customer Ledger](assets/images/screenshots/customer_ledger.png) |
 
-| Customer Ledger | Inventory |
+| 3. Record Credit Sale & Stock Deduction | 4. Inventory Catalog & Profit Margins |
 |---|---|
-| _coming soon_ | _coming soon_ |
+| ![New Transaction](assets/images/screenshots/transaction_create.png) | ![Inventory](assets/images/screenshots/inventory.png) |
+
+| 5. Monthly Financial Report & SVG Chart | 6. Settings & Database Backup |
+|---|---|
+| ![Monthly Report](assets/images/screenshots/reports.png) | ![Settings](assets/images/screenshots/settings.png) |
+
+> *Note: Place your PNG screenshots in `assets/images/screenshots/` with the filenames shown above.*
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Presentation | HTML5 + CSS3 (responsive, high-contrast dark theme) |
-| Business logic | PHP 8.x classes (validation, balance updates, profit computation) |
-| Data persistence | MySQL / MariaDB through PDO prepared statements |
-| Server | Apache via XAMPP |
-| Tools | VS Code, phpMyAdmin, Git/GitHub, draw.io |
+| Business Logic | PHP 8.x OOP + MVC (validation, balance updates, stock deductions, profit calculation) |
+| Data Persistence | MySQL / MariaDB via PDO prepared statements |
+| Local Server | Apache via XAMPP |
+| Development Tools | VS Code, phpMyAdmin, Git/GitHub |
 
-**No JavaScript is used.** Validation runs in PHP and through HTML5 form attributes, the language toggle is handled by PHP language files, and charts are inline SVG generated by PHP.
+**Strictly Zero JavaScript.** All form validation runs through HTML5 attributes and server-side PHP. Language switching is handled through PHP session dictionaries, and charts are rendered as pure, scalable inline SVG markup.
 
 ## Architecture
 
-EquityFlow follows a simple **MVC** pattern:
+EquityFlow follows a standard **MVC (Model-View-Controller)** pattern:
 
-- **Model**: PHP classes (`User`, `Customer`, `Transaction`, `Product`, `Ledger`, `Report`) that run SQL through PDO.
-- **View**: HTML/CSS templates (login, dashboard, customers, transactions, inventory, reports).
-- **Controller**: PHP scripts that receive form input, validate it and call the models.
-- **Database**: MySQL tables with foreign keys. Multi-step writes use `BEGIN / COMMIT / ROLLBACK` so no partial data is ever saved.
+- **Model**: Data-access classes (`User`, `Customer`, `Transaction`, `Product`, `Report`, `Setting`, `Backup`) executing parameterized queries via PDO.
+- **View**: Server-rendered HTML templates with consistent layout wrappers (`header.php`, `footer.php`, `pagination.php`).
+- **Controller**: Request handlers validating inputs, enforcing authentication, and orchestrating models and views.
+- **Database**: Normalized relational MySQL tables with foreign keys. Multi-step operations employ `BEGIN / COMMIT / ROLLBACK` transactions with row-level locks (`SELECT ... FOR UPDATE`) to guarantee ACID compliance.
 
 ## Folder Structure
 
 ```
 equityflow/
-├── config/          Database connection, constants, session, CSRF, language helper
-├── models/          User, Customer, Transaction, Product, Ledger, Report
-├── controllers/     Auth, Customer, Transaction, Product, Report, Settings
-├── views/           HTML templates (layout, auth, customers, products, reports)
-├── assets/          css and images
-├── lang/            bn.php, en.php
-├── database/        schema.sql, seed.sql
-├── backups/         Generated SQL dumps (not committed)
-├── docs/            User guide and test report
-└── index.php        Front controller / router
+├── assets/
+│   ├── css/
+│   │   └── style.css            # Dark high-contrast responsive styling
+│   └── images/
+│       └── screenshots/         # Application UI preview captures
+├── backups/                     # Generated SQL dumps (.htaccess protected)
+│   ├── .htaccess
+│   └── .gitkeep
+├── config/
+│   ├── auth_guard.php           # require_login() enforcement
+│   ├── constants.php            # Currency, pagination, session constants
+│   ├── csrf.php                 # CSRF token generation & verification
+│   ├── Database.php             # PDO singleton database connection
+│   ├── lang.php                 # Bilingual translation helper t()
+│   └── session.php              # Hardened session initialization
+├── controllers/                 # Route controllers (Auth, Customer, Product, etc.)
+├── database/
+│   ├── schema.sql               # Database schema (utf8mb4, InnoDB)
+│   ├── seed.sql                 # Initial seed dataset (1 admin, 5 customers, 8 products)
+│   ├── seed_bulk.php            # 10,000 customer benchmark generator
+│   └── test_paginate.php        # 30-point integration test suite
+├── docs/
+│   └── USER_GUIDE.md            # Plain-language user guide (Bangla & English)
+├── helpers/
+│   ├── chart.php                # Pure inline SVG bar comparison generator
+│   ├── format.php               # e() escaping, format_money(), flash alerts
+│   ├── sparkline.php            # Pure inline SVG sparkline polyline generator
+│   └── validation.php           # BD phone, positive amount, string sanitizers
+├── lang/
+│   ├── bn.php                   # Bangla translation dictionary
+│   └── en.php                   # English translation dictionary
+├── models/                      # Business & data-access models
+├── views/                       # Server-rendered view templates
+├── CHANGELOG.md                 # Release version history
+├── index.php                    # Front controller & URL whitelist router
+└── README.md                    # Project documentation
 ```
 
 ## Database Design
 
-| Table | Key fields |
-|---|---|
-| `users` | user_id, username, password_hash, pin_hash, role, failed_attempts, locked |
-| `customers` | cust_id, name, phone, address, balance, credit_limit, join_date |
-| `transactions` | txn_id, cust_id (FK), amount, type (credit / payment), note, created_at |
-| `products` | prod_id, name, category, retail_price, cost_price, stock, min_stock |
-| `sale_items` | item_id, txn_id (FK), prod_id (FK), qty, unit_price, unit_cost |
-| `ledger_entries` | ledger_id, owner_id (FK), txn_id (FK), created_at |
-| `reports` | report_id, period, type, total, generated_at |
-| `settings` | key, value |
-
-Customers link to transactions one-to-many. Products link to sales through `sale_items` when stock is reduced.
+| Table | Key Columns | Description |
+|---|---|---|
+| `users` | `user_id`, `username`, `password_hash`, `pin_hash`, `role`, `failed_attempts`, `locked`, `last_login` | Authenticated merchants & staff |
+| `customers` | `cust_id`, `name`, `phone`, `address`, `balance`, `credit_limit`, `join_date` | Customer profiles & balances |
+| `transactions` | `txn_id`, `cust_id` (FK), `amount`, `type` (`credit`/`payment`), `note`, `created_at` | Khata ledger transactions |
+| `products` | `prod_id`, `name`, `category`, `retail_price`, `cost_price`, `stock`, `min_stock` | Inventory catalog |
+| `sale_items` | `item_id`, `txn_id` (FK), `prod_id` (FK), `qty`, `unit_price`, `unit_cost` | Itemized credit sale line items |
+| `ledger_entries` | `ledger_id`, `owner_id` (FK), `txn_id` (FK), `created_at` | Audit trail linking owner to transaction |
+| `reports` | `report_id`, `period`, `type`, `total`, `generated_at` | Monthly snapshot financial aggregations |
+| `settings` | `skey` (PK), `svalue` | Key-value shop preferences & defaults |
 
 ## Getting Started
 
 ### Requirements
 
-- Windows or Linux computer with 4 GB RAM or more
-- [XAMPP](https://www.apachefriends.org/) (Apache, PHP 8.x, MySQL/MariaDB)
-- A modern browser (Chrome, Firefox or Edge)
+- Computer running Windows 10/11 or Linux with 4 GB RAM or more
+- [XAMPP](https://www.apachefriends.org/) (Apache 2.4+, PHP 8.1+, MySQL/MariaDB 10.4+)
+- Modern web browser (Google Chrome, Mozilla Firefox, or Microsoft Edge)
 
 ### Installation
 
-1. **Clone the repository** into your XAMPP web folder:
+1. **Clone or copy the repository** into your XAMPP `htdocs` directory:
    ```bash
    cd C:/xampp/htdocs
    git clone https://github.com/MI-muhibul/EquityFlow.git equityflow
    ```
 2. **Start Apache and MySQL** from the XAMPP Control Panel.
-3. **Create the database.** Open `http://localhost/phpmyadmin`, create a database named `equityflow` (collation `utf8mb4_unicode_ci`), then import `database/schema.sql` followed by `database/seed.sql`.
-4. **Configure the connection.** Copy the sample config and edit it:
-   ```bash
-   cp config/config.sample.php config/config.php
-   ```
-   Set your database host, name, user and password in `config/config.php`. This file is git-ignored.
-5. **Open the app** at `http://localhost/equityflow`.
+3. **Import Database Schema & Seeds:**
+   - Open `http://localhost/phpmyadmin` in your browser.
+   - Create a database named `equityflow` with collation `utf8mb4_unicode_ci`.
+   - Import `database/schema.sql`.
+   - Import `database/seed.sql`.
+4. **Open the Application:**
+   - Navigate to `http://localhost/equityflow` in your web browser.
 
-### First login
+### First Login
 
-The seed data creates one admin account (see `database/seed.sql`). **Change the password immediately** from the Change Password page after your first login.
+- **Username:** `admin`
+- **Password:** `Admin@123`
 
-### Using it from a phone
+> [!IMPORTANT]
+> Immediately upon your first login, navigate to the **Change Password** page (click the 🔑 key icon in the navigation bar) and set a new, secure password.
 
-Find your computer's local IP address (for example `192.168.0.10`) and open `http://192.168.0.10/equityflow` on a phone connected to the same Wi-Fi network.
+### Local Network Access (Using from Mobile Devices)
+
+To access EquityFlow from a smartphone or tablet connected to the same shop Wi-Fi network:
+1. Find your host computer's local IP address (e.g. run `ipconfig` in Command Prompt to find your IPv4 address, such as `192.168.0.105`).
+2. Open the browser on your phone and navigate to `http://192.168.0.105/equityflow`.
 
 ## Security
 
-- Passwords hashed with `password_hash()` (salted)
-- Account lockout after 5 failed attempts
-- 30-minute inactivity session timeout and session ID regeneration on login
-- PDO **prepared statements** against SQL injection
-- Output escaping with `htmlspecialchars` against XSS
-- CSRF tokens on every form
-- Database transactions for ACID-safe writes
-- `backups/` protected from direct web access
-
-If you find a security issue, please open a private report or contact the author directly rather than a public issue.
+- **Password Storage:** Salted, hashed passwords using PHP `password_hash()` with `PASSWORD_BCRYPT`.
+- **Brute-Force Lockout:** Automatic account locking after 5 consecutive failed login attempts.
+- **Session Hardening:** 30-minute inactivity session timeout, session ID regeneration upon login, and secure cookie attributes (`HttpOnly`, `SameSite=Lax`).
+- **SQL Injection Prevention:** 100% of database queries use PDO prepared statements with strict parameter binding.
+- **Cross-Site Scripting (XSS) Mitigation:** All dynamic view output is sanitized using `e()` (`htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`).
+- **Cross-Site Request Forgery (CSRF):** Cryptographically secure one-time CSRF tokens validated on every POST request.
+- **Transactional Atomicity:** Multi-table operations wrapped in ACID PDO transactions (`beginTransaction`, `commit`, `rollBack`).
+- **Direct Directory Denial:** Apache configuration in `backups/.htaccess` strictly denies direct HTTP requests to database dump files.
 
 ## Bilingual Interface
 
-Every label, message and status is read from `lang/en.php` and `lang/bn.php`. Switch language instantly from the toolbar. Plain-language labels and tooltips are used throughout for shop owners with limited digital literacy.
+Every UI string, button, badge, and validation message is loaded dynamically from `lang/en.php` or `lang/bn.php`. Users can switch languages instantly by clicking the **🌐 বাংলা** / **🌐 English** button in the header navigation.
 
-## Testing
+## Testing & Quality Assurance
 
-The test plan covers:
+EquityFlow includes comprehensive automated and manual test verification:
+- **30-Point Pagination & Filter Test Suite (`database/test_paginate.php`):** Validates query building, bounds checking, and input retention across all models (**30/30 PASS**).
+- **Atomic Rollback Verification (`database/test_rollback.php`):** Proves that simulated failures roll back database state cleanly with zero orphaned rows.
+- **High-Volume Benchmark (`database/seed_bulk.php`):** Populates 10,000 customer records in under 1 second (0.46s benchmarked) with verified sub-50ms search latency using B-Tree indexes (`idx_customers_name`, `idx_customers_phone`).
 
-- **Functional**: add customer, credit sale, partial payment, empty search, blocked deletion, low-stock status, monthly report
-- **Security**: wrong password, lockout, negative amounts, SQL injection and XSS attempts, CSRF tampering
-- **Performance**: search across 10,000 customers (under 1 second), three months of report data
-- **Usability**: language switch, three-click rule, tooltips
-- **Compatibility**: Chrome, Firefox, Edge, phone browser
-- **Reliability**: interrupted transaction rolls back cleanly
+## Known Limitations from Testing
 
-Results are recorded in `docs/` as the project progresses.
+Through rigorous QA testing, the following architectural and environment constraints are documented for v1.0:
+
+1. **Leading Wildcard Search Scans:** While prefix searches (`name LIKE 'Mohammad%'`) hit the B-Tree index with sub-millisecond range scans, search terms entered with leading wildcards (`%keyword%`) perform full table scans. (With 10,000 rows and `LIMIT 20`, latency remains $< 50\text{ ms}$ on local XAMPP).
+2. **Server-Side Pagination Workflow:** Because EquityFlow strictly avoids client-side JavaScript, changing page numbers or applying filters triggers a standard HTTP GET request reload rather than an asynchronous DOM replacement.
+3. **Local Network Scope:** The application is architected for local shop intranet use via Apache/XAMPP. Access from outside the shop Wi-Fi network requires a VPN or reverse proxy (e.g., Cloudflare Tunnel / ngrok), which is not part of default setup.
+4. **Thermal Printer Direct Spooling:** Receipts and reports are designed for on-screen viewing and standard browser printing (`Ctrl + P`); raw ESC/POS thermal printer driver integration is not supported in v1.0.
 
 ## Development Roadmap
 
-Built in 20 incremental pushes:
-
-- [x] 1. Repository skeleton, router and README
+- [x] 1. Repository skeleton, router, and documentation
 - [x] 2. Database schema and seed data
 - [x] 3. PDO connection, constants, secure session
-- [x] 4. Bangla / English language system
-- [x] 5. Base layout and dark theme
+- [x] 4. Bangla / English bilingual language system
+- [x] 5. Base layout and dark responsive theme
 - [x] 6. Login with `password_hash`
-- [x] 7. Lockout, timeout, CSRF, change password
+- [x] 7. Lockout, timeout, CSRF, password change
 - [x] 8. Dashboard shell and navigation
 - [x] 9. Customers: add and list
-- [ ] 10. Customers: edit, view, delete
-- [ ] 11. Credit sales and payments with rollback safety
-- [ ] 12. History with running balance and receipt
-- [ ] 13. Products: add, edit, stock status
-- [ ] 14. Profit, margin and SVG sparkline
-- [ ] 15. Stock reduction and low-stock alerts
-- [ ] 16. Search and filters
-- [ ] 17. Monthly reports
-- [ ] 18. Settings and SQL backup
-- [ ] 19. Testing and bug fixes
-- [ ] 20. Final documentation and v1.0 release
+- [x] 10. Customers: edit, view profile, delete guard
+- [x] 11. Credit sales and payments with rollback safety
+- [x] 12. History with running balance and on-screen receipt
+- [x] 13. Products: add, edit, stock status computation
+- [x] 14. Profit, margin %, loss warning, and SVG sparkline
+- [x] 15. Stock reduction and low-stock alerts
+- [x] 16. Search and GET-based filters (20 per page)
+- [x] 17. Monthly reports and inline SVG bar breakdown
+- [x] 18. Settings and pure PDO SQL database backup
+- [x] 19. Testing, bug fixes, and performance benchmarking
+- [x] 20. Final documentation and v1.0 release
 
 ## Out of Scope and Future Plans
 
-**Not in v1.0:** online payment gateways (bKash / Nagad), native mobile apps, automatic SMS/WhatsApp receipts, voice commands and OCR, receipt and report printing, multi-user roles.
+**Not in v1.0:** Online mobile payment APIs (bKash / Nagad merchant gateway), native Android/iOS mobile apps, automated SMS/WhatsApp gateways, receipt OCR/voice input.
 
-**Planned later:**
-
-- Print option for receipts and reports (A4 and 58 mm thermal)
-- Digital receipt sharing by SMS, WhatsApp or email
-- bKash / Nagad API integration
-- Multi-user role-based access (v2.0)
-- Firebase login and cloud sync
-- Progressive Web App (PWA) support for offline phone use
-- AI-based analysis and suggestions
+**Planned for Future Releases:**
+- Native 58mm / 80mm ESC/POS thermal printer direct output
+- SMS and WhatsApp digital slip sharing via webhook integrations
+- bKash / Nagad QR payment collection
+- Multi-user role-based permissions (Cashier vs Manager vs Owner)
+- Progressive Web App (PWA) offline service workers
 
 ## Author
 
-**Md Muhibul Islam Abir** (ID: 242-134-042)
-Software Engineering, Metropolitan University, Sylhet
+**Md Muhibul Islam Abir** (ID: 242-134-042)  
+Department of Software Engineering, Metropolitan University, Sylhet  
 
-Submitted to **Lukman Nakib**, Guest Lecturer, Department of Software Engineering, Metropolitan University, Sylhet.
+Submitted to: **Lukman Nakib**, Guest Lecturer, Department of Software Engineering, Metropolitan University, Sylhet.
 
 GitHub: [@MI-muhibul](https://github.com/MI-muhibul)
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).

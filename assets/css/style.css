@@ -337,7 +337,7 @@ img { max-width: 100%; display: block; }
 .grid-stats {
     display: grid;
     gap: 1rem;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr;   /* mobile-first: always 1 col at <480px */
 }
 
 @media (min-width: 480px) {
@@ -345,6 +345,18 @@ img { max-width: 100%; display: block; }
 }
 @media (min-width: 900px) {
     .grid-stats { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* TC-COMP-01 FIX: stat cards must not impose a fixed min-width on small screens */
+@media (max-width: 479px) {
+    .grid-stats {
+        grid-template-columns: 1fr !important;
+    }
+    .stat-card {
+        min-width: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
 }
 
 /* General purpose grids */
@@ -837,6 +849,9 @@ input[type="hidden"] { display: none; }
     flex-wrap: wrap;
     gap: .625rem;
     align-items: flex-end;
+    /* TC-COMP-01: allow row to stay within viewport */
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Each label+input group inside the filter bar */
@@ -844,8 +859,21 @@ input[type="hidden"] { display: none; }
     display: flex;
     flex-direction: column;
     gap: .2rem;
-    min-width: 140px;
-    flex: 1 1 160px;
+    min-width: 0;          /* TC-COMP-01: was 140px — caused overflow on 375px */
+    flex: 1 1 140px;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* On very small screens: stack filter groups vertically, full width */
+@media (max-width: 479px) {
+    .filter-row {
+        flex-direction: column;
+    }
+    .filter-group {
+        flex: 1 1 100%;
+        width: 100%;
+    }
 }
 
 .filter-group label {
@@ -964,4 +992,78 @@ input[type="hidden"] { display: none; }
     opacity: .4;
     cursor: default;
     pointer-events: none;
+}
+
+
+/* ==========================================================================
+   TC-COMP-01 FIX — Mobile Touch Targets & Overflow (appended 2026-11-14)
+   Ensures all interactive elements meet the ≥40px touch-target minimum
+   on 375px and 414px viewports per WCAG 2.5.5.
+   ========================================================================== */
+
+/* -- Prevent full-page horizontal overflow on small screens -------------- */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* -- All buttons: enforce 44px minimum touch target on mobile ------------ */
+@media (max-width: 768px) {
+    .btn,
+    .btn-sm,
+    .btn-lg,
+    .btn-block,
+    .btn-clear-filter,
+    button,
+    input[type="submit"],
+    input[type="button"],
+    select,
+    .page-link,
+    .lang-btn {
+        min-height: 44px;
+        padding-top: .6rem;
+        padding-bottom: .6rem;
+    }
+
+    /* Table action buttons — ensure they don't shrink */
+    .table td .btn,
+    .table td a.btn {
+        min-height: 44px;
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Tables: horizontal scroll instead of overflow */
+    .table-wrap,
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+    }
+
+    table {
+        min-width: 540px; /* allow scroll, don't squish columns */
+    }
+
+    /* Stat/KPI cards: stack to single column */
+    .stats-grid,
+    .kpi-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Header nav: allow wrapping */
+    .app-header .header-inner {
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+    /* Password change link in nav */
+    .header-actions a,
+    .header-actions button {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
 }
