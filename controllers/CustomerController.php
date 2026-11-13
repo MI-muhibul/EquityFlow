@@ -4,93 +4,85 @@ declare(strict_types=1);
 /**
  * controllers/CustomerController.php
  * -----------------------------------------------------------------------------
- * Controller handling customer operations:
- *   - List customers (?page=customers)
- *   - Create customer (?page=customers&action=create)
- *   - Edit customer (?page=customers&action=edit&id=X)
- *   - Profile view (?page=customers&action=profile&id=X)
- *   - Delete confirmation & POST delete (?page=customers&action=deleteConfirm&id=X)
- *   - Transaction history with running balance (?page=customers&action=history&id=X)
- *   - Transaction receipt view (?page=customers&action=receipt&id=X)
+ * Handles all customer CRUD operations for the logged-in shop owner.
+ *
+ * Routes:
+ *   ?page=customers                           – list (index)
+ *   ?page=customers&action=create             – add form + POST handler
+ *   ?page=customers&action=edit&id=X          – edit form + POST handler
+ *   ?page=customers&action=profile&id=X       – customer profile page
+ *   ?page=customers&action=deleteConfirm&id=X – server-rendered confirm page
+ *   ?page=customers&action=delete  (POST)     – perform deletion
+ *
+ * Security rules enforced here:
+ *   • require_login()  — session + 30-min timeout
+ *   • user_id scoping  — every Customer model call receives $userId
+ *   • CSRF token       — verified on every POST
+ *   • 404 on wrong owner — findById(id, userId) returns null → 404 view
+ *   • Balance guard    — refuse delete unless balance == 0
+ *
+ * Output rules:
+ *   • All dynamic values escaped with e() / htmlspecialchars
+ *   • Money formatted as ৳ with 2 decimals via format_money()
+ *   • All UI strings from lang files via t()
+ *   • Zero JavaScript
  * -----------------------------------------------------------------------------
- * Rules:
- *   - require_login() enforced
- *   - Zero JavaScript
- *   - Prepared statements only
- *   - All output escaped with e()
- *   - Formatted money with ৳ and 2 decimals
- *   - Language strings loaded from lang files via t()
  */
 
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../config/auth_guard.php';
 require_once __DIR__ . '/../config/csrf.php';
+require_once __DIR__ . '/../config/lang.php';
 require_once __DIR__ . '/../helpers/format.php';
-require_once __DIR__ . '/../helpers/validation.php';
 require_once __DIR__ . '/../models/Customer.php';
-require_once __DIR__ . '/../models/Transaction.php';
 require_once __DIR__ . '/../config/Database.php';
 
 class CustomerController
 {
-    /**
-     * Dispatcher method called by index.php router.
-     */
+    // Logged-in user's ID — set once in handleRequest()
+    private int $userId;
+
+    // =========================================================================
+    // handleRequest() — router entry point
+    // =========================================================================
     public function handleRequest(): void
     {
-        require_login();
+        require_login(); // redirect to login if unauthenticated or timed-out
 
-        $action = isset($_GET['action']) && is_string($_GET['action']) ? trim($_GET['action']) : 'index';
+        $this->userId = (int)$_SESSION['user_id'];
 
-        switch ($action) {
-            case 'create':
-                $this->create();
-                break;
-            case 'edit':
-                $this->edit();
-                break;
-            case 'profile':
-                $this->profile();
-                break;
-            case 'history':
-                $this->history();
-                break;
-            case 'receipt':
-                $this->receipt();
-                break;
-            case 'deleteConfirm':
-                $this->deleteConfirm();
-                break;
-            case 'delete':
-                $this->delete();
-                break;
-            case 'index':
-            default:
-                $this->index();
-                break;
-        }
+        $action = isset($_GET['action']) && is_string($_GET['action'])
+            ? trim($_GET['action'])
+            : 'index';
+
+        match ($action) {
+            'create'        => $this->create(),
+            'edit'          => $this->edit(),
+            'profile'       => $this->profile(),
+            'deleteConfirm' => $this->deleteConfirm(),
+            'delete'        => $this->delete(),
+            default         => $this->index(),
+        };
     }
 
-    /**
-     * List customers — with optional GET filters (name, phone) and pagination.
-     */
+    // =========================================================================
+    // index() — customer list with filter + pagination
+    // =========================================================================
     public function index(): void
     {
-        // --- Collect GET filter values (strip tags, never trust raw input) ---
+        // Read GET filter values (strip tags, never trust raw input)
         $filters = [
             'name'  => trim(strip_tags($_GET['name']  ?? '')),
             'phone' => trim(strip_tags($_GET['phone'] ?? '')),
         ];
 
-        // --- Current page (default 1, minimum 1) ---
-        $page = max(1, (int) ($_GET['p'] ?? 1));
+        $page = max(1, (int)($_GET['p'] ?? 1));
 
-        // --- Paginated query --------------------------------------------------
-        $result = Customer::paginate($filters, $page, 20);
+        // All queries inside paginate() are scoped to $this->userId
+        $result = Customer::paginate($this->userId, $filters, $page, 20);
 
-        // Unpack for the view
         $customers  = $result['items'];
-        $pagination = $result;    // view receives the full pagination array
+        $pagination = $result;
         $pageTitle  = t('customer_title');
         $activePage = 'customers';
 
@@ -99,55 +91,56 @@ class CustomerController
         require __DIR__ . '/../views/layout/footer.php';
     }
 
-    /**
-     * Create new customer.
-     */
+    // =========================================================================
+    // create() — add new customer
+    // =========================================================================
     public function create(): void
     {
+        $old    = [];   // repopulate form on error
+        $errors = [];   // field-keyed error messages
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // 1. CSRF check
             if (!csrf_verify($_POST['csrf_token'] ?? '')) {
                 flash_set('error', t('error_csrf_invalid'));
                 header('Location: index.php?page=customers&action=create');
                 exit;
             }
 
-            $name        = trim($_POST['name'] ?? '');
-            $phone       = trim($_POST['phone'] ?? '');
-            $address     = trim($_POST['address'] ?? '');
-            $creditLimit = (float)($_POST['credit_limit'] ?? 0.0);
+            // 2. Gather & sanitise inputs
+            $old         = $_POST;
+            $name        = trim($_POST['name']         ?? '');
+            $phone       = trim($_POST['phone']        ?? '');
+            $address     = trim($_POST['address']      ?? '');
+            $creditLimit = (float)($_POST['credit_limit'] ?? 0);
             $joinDate    = date('Y-m-d');
 
-            $errors = [];
+            // 3. Server-side validation
             if ($name === '') {
-                $errors[] = t('error_required_field');
+                $errors['name'] = t('error_required_field');
             }
+            // Phone: must be 11 digits starting 013-019
             if (!preg_match('/^01[3-9]\d{8}$/', $phone)) {
-                $errors[] = t('error_invalid_phone');
+                $errors['phone'] = t('error_invalid_phone');
+            } elseif (Customer::phoneExists($phone, $this->userId, 0)) {
+                // unique per this user
+                $errors['phone'] = t('error_phone_exists');
             }
-            if (Customer::phoneExists($phone)) {
-                $errors[] = t('error_phone_exists');
-            }
-            if ($creditLimit < 0.0) {
-                $errors[] = t('error_credit_limit_invalid');
+            if ($creditLimit < 0) {
+                $errors['credit_limit'] = t('error_credit_limit_invalid');
             }
 
-            if (!empty($errors)) {
-                foreach ($errors as $e) {
-                    flash_set('error', $e);
+            if (empty($errors)) {
+                try {
+                    $custId = Customer::create(
+                        $this->userId, $name, $phone, $address, $creditLimit, $joinDate
+                    );
+                    flash_set('success', t('msg_saved_success'));
+                    header("Location: index.php?page=customers&action=profile&id={$custId}");
+                    exit;
+                } catch (PDOException) {
+                    flash_set('error', t('error_db_error'));
                 }
-                header('Location: index.php?page=customers&action=create');
-                exit;
-            }
-
-            try {
-                Customer::create($name, $phone, $address, $creditLimit, $joinDate);
-                flash_set('success', t('msg_saved_success'));
-                header('Location: index.php?page=customers');
-                exit;
-            } catch (PDOException $ex) {
-                flash_set('error', t('error_db_error'));
-                header('Location: index.php?page=customers&action=create');
-                exit;
             }
         }
 
@@ -159,61 +152,61 @@ class CustomerController
         require __DIR__ . '/../views/layout/footer.php';
     }
 
-    /**
-     * Edit existing customer.
-     */
+    // =========================================================================
+    // edit() — edit existing customer (must belong to this user)
+    // =========================================================================
     public function edit(): void
     {
-        $id = (int)($_GET['id'] ?? 0);
-        $customer = Customer::findById($id);
+        $id       = (int)($_GET['id'] ?? 0);
+        $customer = Customer::findById($id, $this->userId); // null if wrong owner
 
-        if (!$customer) {
-            flash_set('error', t('error_customer_not_found'));
-            header('Location: index.php?page=customers');
-            exit;
+        // 404 if the customer doesn't exist or belongs to another user
+        if ($customer === null) {
+            $this->render404();
+            return;
         }
 
+        $old    = $customer; // pre-fill form with current data
+        $errors = [];
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // 1. CSRF check
             if (!csrf_verify($_POST['csrf_token'] ?? '')) {
                 flash_set('error', t('error_csrf_invalid'));
                 header("Location: index.php?page=customers&action=edit&id={$id}");
                 exit;
             }
 
-            $name        = trim($_POST['name'] ?? '');
-            $phone       = trim($_POST['phone'] ?? '');
-            $address     = trim($_POST['address'] ?? '');
-            $creditLimit = (float)($_POST['credit_limit'] ?? 0.0);
+            // 2. Gather & sanitise
+            $old         = $_POST;
+            $name        = trim($_POST['name']         ?? '');
+            $phone       = trim($_POST['phone']        ?? '');
+            $address     = trim($_POST['address']      ?? '');
+            $creditLimit = (float)($_POST['credit_limit'] ?? 0);
 
-            $errors = [];
+            // 3. Validation
             if ($name === '') {
-                $errors[] = t('error_required_field');
+                $errors['name'] = t('error_required_field');
             }
             if (!preg_match('/^01[3-9]\d{8}$/', $phone)) {
-                $errors[] = t('error_invalid_phone');
+                $errors['phone'] = t('error_invalid_phone');
+            } elseif (Customer::phoneExists($phone, $this->userId, $id)) {
+                // excludeId = $id so the existing record is not flagged
+                $errors['phone'] = t('error_phone_exists');
             }
-            if (Customer::phoneExists($phone, $id)) {
-                $errors[] = t('error_phone_exists');
-            }
-            if ($creditLimit < 0.0) {
-                $errors[] = t('error_credit_limit_invalid');
+            if ($creditLimit < 0) {
+                $errors['credit_limit'] = t('error_credit_limit_invalid');
             }
 
-            if (!empty($errors)) {
-                foreach ($errors as $e) {
-                    flash_set('error', $e);
-                }
-                header("Location: index.php?page=customers&action=edit&id={$id}");
+            if (empty($errors)) {
+                Customer::update($id, $this->userId, $name, $phone, $address, $creditLimit);
+                flash_set('success', t('msg_updated_success'));
+                header("Location: index.php?page=customers&action=profile&id={$id}");
                 exit;
             }
-
-            Customer::update($id, $name, $phone, $address, $creditLimit);
-            flash_set('success', t('msg_updated_success'));
-            header("Location: index.php?page=customers&action=profile&id={$id}");
-            exit;
         }
 
-        $pageTitle  = t('btn_edit') . ' — ' . $customer['name'];
+        $pageTitle  = t('btn_edit') . ' — ' . e($customer['name']);
         $activePage = 'customers';
 
         require __DIR__ . '/../views/layout/header.php';
@@ -221,21 +214,20 @@ class CustomerController
         require __DIR__ . '/../views/layout/footer.php';
     }
 
-    /**
-     * Customer profile page.
-     */
+    // =========================================================================
+    // profile() — customer profile details + balance
+    // =========================================================================
     public function profile(): void
     {
-        $id = (int)($_GET['id'] ?? 0);
-        $customer = Customer::findById($id);
+        $id       = (int)($_GET['id'] ?? 0);
+        $customer = Customer::findById($id, $this->userId);
 
-        if (!$customer) {
-            flash_set('error', t('error_customer_not_found'));
-            header('Location: index.php?page=customers');
-            exit;
+        if ($customer === null) {
+            $this->render404();
+            return;
         }
 
-        $pageTitle  = $customer['name'] . ' — ' . t('customer_profile_title');
+        $pageTitle  = e($customer['name']) . ' — ' . t('customer_profile_title');
         $activePage = 'customers';
 
         require __DIR__ . '/../views/layout/header.php';
@@ -243,117 +235,88 @@ class CustomerController
         require __DIR__ . '/../views/layout/footer.php';
     }
 
-    /**
-     * Customer transaction history (Khata) with running balance.
-     */
-    public function history(): void
-    {
-        $id = (int)($_GET['id'] ?? 0);
-        $customer = Customer::findById($id);
-
-        if (!$customer) {
-            flash_set('error', t('error_customer_not_found'));
-            header('Location: index.php?page=customers');
-            exit;
-        }
-
-        $transactions = Transaction::findByCustomerWithRunningBalance($id);
-        $pageTitle    = $customer['name'] . ' — ' . t('customer_history_title');
-        $activePage   = 'customers';
-
-        require __DIR__ . '/../views/layout/header.php';
-        require __DIR__ . '/../views/customers/history.php';
-        require __DIR__ . '/../views/layout/footer.php';
-    }
-
-    /**
-     * Transaction receipt screen view.
-     */
-    public function receipt(): void
-    {
-        $txnId = (int)($_GET['id'] ?? 0);
-        $transaction = Transaction::findById($txnId);
-
-        if (!$transaction) {
-            flash_set('error', t('receipt_not_found'));
-            header('Location: index.php?page=customers');
-            exit;
-        }
-
-        // Fetch shop details from settings table
-        $pdo = Database::getConnection();
-        $settings = $pdo->query('SELECT skey, svalue FROM settings')->fetchAll(PDO::FETCH_KEY_PAIR);
-
-        $shopName    = $settings['shop_name'] ?? 'EquityFlow Digital Khata';
-        $shopPhone   = $settings['shop_phone'] ?? '';
-        $shopAddress = $settings['shop_address'] ?? '';
-        $footerNote  = $settings['invoice_footer'] ?? '';
-
-        $pageTitle  = t('receipt_title') . ' #' . $transaction['txn_id'];
-        $activePage = 'customers';
-
-        require __DIR__ . '/../views/layout/header.php';
-        require __DIR__ . '/../views/customers/receipt.php';
-        require __DIR__ . '/../views/layout/footer.php';
-    }
-
-    /**
-     * Render delete confirmation screen (Zero JS, GET).
-     */
+    // =========================================================================
+    // deleteConfirm() — server-rendered confirmation page (GET, no JS)
+    // =========================================================================
     public function deleteConfirm(): void
     {
-        $id = (int)($_GET['id'] ?? 0);
-        $customer = Customer::findById($id);
+        $id       = (int)($_GET['id'] ?? 0);
+        $customer = Customer::findById($id, $this->userId);
 
-        if (!$customer) {
-            flash_set('error', t('error_customer_not_found'));
-            header('Location: index.php?page=customers');
-            exit;
+        if ($customer === null) {
+            $this->render404();
+            return;
         }
 
-        $pageTitle  = t('btn_delete') . ' — ' . $customer['name'];
-        $activePage = 'customers';
+        // Show reason why deletion is blocked if balance != 0
+        $canDelete   = (float)$customer['balance'] == 0.0;
+        $pageTitle   = t('btn_delete') . ' — ' . e($customer['name']);
+        $activePage  = 'customers';
 
         require __DIR__ . '/../views/layout/header.php';
         require __DIR__ . '/../views/customers/delete_confirm.php';
         require __DIR__ . '/../views/layout/footer.php';
     }
 
-    /**
-     * Process delete (POST only, CSRF verified, balance guard).
-     */
+    // =========================================================================
+    // delete() — POST-only, CSRF + balance guard + user scope
+    // =========================================================================
     public function delete(): void
     {
+        // Only accept POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: index.php?page=customers');
             exit;
         }
 
+        // 1. CSRF check
         if (!csrf_verify($_POST['csrf_token'] ?? '')) {
             flash_set('error', t('error_csrf_invalid'));
             header('Location: index.php?page=customers');
             exit;
         }
 
-        $id = (int)($_POST['id'] ?? 0);
-        $customer = Customer::findById($id);
+        $id       = (int)($_POST['id'] ?? 0);
+        $customer = Customer::findById($id, $this->userId);
 
-        if (!$customer) {
-            flash_set('error', t('error_customer_not_found'));
-            header('Location: index.php?page=customers');
-            exit;
+        // 404 if wrong owner
+        if ($customer === null) {
+            $this->render404();
+            return;
         }
 
-        // Rule: Refuse deletion unless balance = 0
+        // 2. Refuse deletion unless balance = 0 (show translated reason)
         if ((float)$customer['balance'] != 0.0) {
             flash_set('error', t('error_customer_has_due'));
             header("Location: index.php?page=customers&action=profile&id={$id}");
             exit;
         }
 
-        Customer::delete($id);
-        flash_set('success', t('msg_deleted_success'));
-        header('Location: index.php?page=customers');
+        // 3. Delete — model also enforces user_id + balance = 0 in SQL
+        $deleted = Customer::delete($id, $this->userId);
+
+        if ($deleted) {
+            flash_set('success', t('msg_deleted_success'));
+            header('Location: index.php?page=customers');
+        } else {
+            flash_set('error', t('error_db_error'));
+            header("Location: index.php?page=customers&action=profile&id={$id}");
+        }
+        exit;
+    }
+
+    // =========================================================================
+    // render404() — load the styled 404 view (no JS, dark theme)
+    // =========================================================================
+    private function render404(): void
+    {
+        http_response_code(404);
+        $activePage = '404';
+        $pageTitle  = t('page_not_found');
+        $errorMsg   = t('page_not_found_desc');
+        require __DIR__ . '/../views/layout/header.php';
+        require __DIR__ . '/../views/404.php';
+        require __DIR__ . '/../views/layout/footer.php';
         exit;
     }
 }

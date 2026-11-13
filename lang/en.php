@@ -196,6 +196,8 @@ return [
     'customer_profile_title'  => 'Customer Ledger Profile',
     'customer_history_title'  => 'Customer Khata History',
     'customer_add_title'      => 'Register New Customer',
+    'customer_edit_title'     => 'Edit Customer Details',
+    'customer_delete_title'   => 'Delete Customer',
     'customer_count'          => 'Total Customers',
     'receipt_title'           => 'Transaction Receipt',
     'receipt_voucher_no'      => 'Receipt #',

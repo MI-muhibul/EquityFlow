@@ -7,14 +7,14 @@ declare(strict_types=1);
  * Customer list table with GET-based search/filter and 20-per-page pagination.
  *
  * Variables injected by CustomerController::index():
- *   $customers   array  — rows for the current page
+ *   $customers   array  — rows for the current page (already user-scoped)
  *   $pagination  array  — {items, total, page, per_page, total_pages}
  *   $filters     array  — active filter values {name, phone}
  * -----------------------------------------------------------------------------
  */
 ?>
 
-<!-- ===== Page Header ======================================================= -->
+<!-- ===== Page Header ========================================================= -->
 <div class="card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;">
     <div class="d-flex flex-wrap justify-between align-center gap-1">
         <div>
@@ -31,15 +31,10 @@ declare(strict_types=1);
     </div>
 </div>
 
-<!-- ===== Filter Form ======================================================= -->
+<!-- ===== Filter Form ========================================================= -->
 <div class="filter-card">
     <p class="filter-title">🔍 <?= e(t('filter_heading')) ?></p>
-    <!--
-        GET form — filter values survive page refresh.
-        'page=customers' stays in the action URL so the router knows where to go.
-    -->
     <form method="GET" action="index.php" class="filter-row" aria-label="<?= e(t('filter_heading')) ?>">
-        <!-- Keep the router page param -->
         <input type="hidden" name="page" value="customers">
 
         <!-- Name filter -->
@@ -76,14 +71,12 @@ declare(strict_types=1);
     </form>
 </div>
 
-<!-- ===== Customer Table ==================================================== -->
+<!-- ===== Customer Table ====================================================== -->
 <?php if (empty($customers) && $pagination['total'] === 0): ?>
-    <!-- Empty state: no customers match the current filters -->
+    <!-- Empty state -->
     <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
         <div style="font-size: 3rem; margin-bottom: 1rem;">👤</div>
-        <?php
-            $hasFilter = ($filters['name'] !== '' || $filters['phone'] !== '');
-        ?>
+        <?php $hasFilter = ($filters['name'] !== '' || $filters['phone'] !== ''); ?>
         <p class="text-muted">
             <?= $hasFilter ? e(t('filter_results')) . ': 0' : e(t('customer_empty_list')) ?>
         </p>
@@ -96,9 +89,8 @@ declare(strict_types=1);
     </div>
 
 <?php else: ?>
-    <!-- Summary strip -->
+    <!-- Summary strip (page-level totals) -->
     <?php
-        // Sum balances on the CURRENT page only (totals come from DB via total field)
         $pageDue = array_sum(array_column($customers, 'balance'));
     ?>
     <div class="grid-stats" style="margin-bottom: 1.5rem;">
@@ -123,7 +115,7 @@ declare(strict_types=1);
                         <th><?= e(t('label_phone')) ?></th>
                         <th class="td-money"><?= e(t('label_balance')) ?></th>
                         <th class="td-money"><?= e(t('label_credit_limit')) ?></th>
-                        <th><?= e(t('label_date')) ?></th>
+                        <th><?= e(t('label_join_date')) ?></th>
                         <th><?= e(t('btn_edit')) ?></th>
                     </tr>
                 </thead>
@@ -134,24 +126,30 @@ declare(strict_types=1);
                     ?>
                     <?php foreach ($customers as $i => $cust): ?>
                         <?php
-                            $balance = (float) $cust['balance'];
+                            $balance = (float)$cust['balance'];
                             if ($balance > 0) {
                                 $balanceClass = 'td-due';
                                 $badgeClass   = 'badge-red';
+                                $badgeLabel   = t('customer_total_due');
                             } elseif ($balance < 0) {
                                 $balanceClass = 'td-paid';
                                 $badgeClass   = 'badge-green';
+                                $badgeLabel   = t('customer_advance_paid');
                             } else {
                                 $balanceClass = '';
                                 $badgeClass   = 'badge-neutral';
+                                $badgeLabel   = t('customer_zero_balance');
                             }
                         ?>
                         <tr>
-                            <!-- Absolute row number (doesn't reset on page 2) -->
+                            <!-- Absolute row number -->
                             <td class="text-muted text-sm"><?= $rowStart + $i ?></td>
 
                             <td>
-                                <strong><?= e($cust['name']) ?></strong>
+                                <a href="index.php?page=customers&amp;action=profile&amp;id=<?= (int)$cust['cust_id'] ?>"
+                                   style="font-weight:600; text-decoration:none; color:var(--text-primary);">
+                                    <?= e($cust['name']) ?>
+                                </a>
                                 <?php if (!empty($cust['address'])): ?>
                                     <div class="text-muted text-sm"><?= e($cust['address']) ?></div>
                                 <?php endif; ?>
@@ -163,9 +161,7 @@ declare(strict_types=1);
                                 <?= e(format_money($balance)) ?>
                                 <div>
                                     <span class="badge <?= $badgeClass ?>">
-                                        <?= $balance > 0
-                                            ? e(t('customer_total_due'))
-                                            : e(t('customer_zero_balance')) ?>
+                                        <?= e($badgeLabel) ?>
                                     </span>
                                 </div>
                             </td>
@@ -182,9 +178,9 @@ declare(strict_types=1);
                                        class="btn btn-ghost btn-sm">
                                         <?= e(t('btn_view_profile')) ?>
                                     </a>
-                                    <a href="index.php?page=customers&amp;action=history&amp;id=<?= (int)$cust['cust_id'] ?>"
+                                    <a href="index.php?page=customers&amp;action=edit&amp;id=<?= (int)$cust['cust_id'] ?>"
                                        class="btn btn-ghost btn-sm">
-                                        <?= e(t('btn_view_history')) ?>
+                                        <?= e(t('btn_edit')) ?>
                                     </a>
                                 </div>
                             </td>

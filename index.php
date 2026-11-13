@@ -42,6 +42,7 @@ $routeWhitelist = [
     'login'        => 'AuthController',
     'signup'       => 'AuthController',
     'logout'       => 'AuthController',
+    'profile'      => 'ProfileController',
     'home'            => 'HomeController',
     'google-login'    => 'AuthController',
     'google-callback' => 'AuthController',

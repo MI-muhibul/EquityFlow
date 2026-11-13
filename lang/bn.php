@@ -197,6 +197,8 @@ return [
     'customer_profile_title'  => 'কাস্টমারের খাতা প্রোফাইল',
     'customer_history_title'  => 'কাস্টমারের লেনদেন ইতিহাস',
     'customer_add_title'      => 'নতুন কাস্টমার নিবন্ধন',
+    'customer_edit_title'     => 'কাস্টমার তথ্য সম্পাদনা',
+    'customer_delete_title'   => 'কাস্টমার মুছুন',
     'customer_count'          => 'মোট কাস্টমার সংখ্যা',
     'receipt_title'           => 'লেনদেনের রশিদ / মেমো',
     'receipt_voucher_no'      => 'রশিদ নং #',
