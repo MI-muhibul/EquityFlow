@@ -222,4 +222,35 @@ return [
     'controller_missing'      => 'কন্ট্রোলার পাওয়া যায়নি',
     'controller_missing_desc' => 'এই রাউটের জন্য নির্ধারিত কন্ট্রোলারটি এখনও তৈরি করা হয়নি।',
     'back_to_home'            => 'ড্যাশবোর্ডে ফিরে যান',
+
+    // ফিল্টার ও অনুসন্ধান
+    'filter_heading'          => 'অনুসন্ধান ও ফিল্টার',
+    'filter_btn_apply'        => 'ফিল্টার করুন',
+    'filter_btn_clear'        => 'ফিল্টার মুছুন',
+    'filter_name'             => 'নাম',
+    'filter_phone'            => 'মোবাইল নম্বর',
+    'filter_start_date'       => 'শুরুর তারিখ',
+    'filter_end_date'         => 'শেষ তারিখ',
+    'filter_customer'         => 'ক্রেতা',
+    'filter_all_customers'    => '— সকল ক্রেতা —',
+    'filter_type'             => 'লেনদেনের ধরন',
+    'filter_all_types'        => '— সব ধরনের —',
+    'filter_category'         => 'বিভাগ',
+    'filter_all_categories'   => '— সকল বিভাগ —',
+    'filter_status'           => 'মজুদ অবস্থা',
+    'filter_all_statuses'     => '— সব অবস্থা —',
+    'filter_in_stock'         => 'মজুদ আছে',
+    'filter_low_stock'        => 'কম মজুদ',
+    'filter_out_of_stock'     => 'মজুদ শেষ',
+    'filter_results'          => 'টি ফলাফল পাওয়া গেছে',
+
+    // পেজিনেশন
+    'pagination_prev'         => '← পূর্ববর্তী',
+    'pagination_next'         => 'পরবর্তী →',
+    'pagination_page'         => 'পাতা',
+    'pagination_of'           => '/',
+    'pagination_showing'      => 'দেখানো হচ্ছে',
+    'pagination_to'           => 'থেকে',
+    'pagination_records'      => 'টি রেকর্ড',
+];
 ];

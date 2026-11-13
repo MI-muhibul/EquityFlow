@@ -72,11 +72,25 @@ class CustomerController
     }
 
     /**
-     * List all customers.
+     * List customers — with optional GET filters (name, phone) and pagination.
      */
     public function index(): void
     {
-        $customers  = Customer::all();
+        // --- Collect GET filter values (strip tags, never trust raw input) ---
+        $filters = [
+            'name'  => trim(strip_tags($_GET['name']  ?? '')),
+            'phone' => trim(strip_tags($_GET['phone'] ?? '')),
+        ];
+
+        // --- Current page (default 1, minimum 1) ---
+        $page = max(1, (int) ($_GET['p'] ?? 1));
+
+        // --- Paginated query --------------------------------------------------
+        $result = Customer::paginate($filters, $page, 20);
+
+        // Unpack for the view
+        $customers  = $result['items'];
+        $pagination = $result;    // view receives the full pagination array
         $pageTitle  = t('customer_title');
         $activePage = 'customers';
 

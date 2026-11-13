@@ -61,11 +61,27 @@ class ProductController
     }
 
     /**
-     * List all products with stock status badges and profit margins.
+     * List products — with optional GET filters and pagination.
      */
     public function index(): void
     {
-        $products   = Product::all();
+        // --- Collect filter values -------------------------------------------
+        $filters = [
+            'name'     => trim(strip_tags($_GET['name']     ?? '')),
+            'category' => trim(strip_tags($_GET['category'] ?? '')),
+            'status'   => trim(strip_tags($_GET['status']   ?? '')),
+        ];
+
+        $page = max(1, (int) ($_GET['p'] ?? 1));
+
+        $result = Product::paginate($filters, $page, 20);
+
+        $products   = $result['items'];
+        $pagination = $result;
+
+        // Category list for the filter dropdown
+        $allCategories = Product::allCategories();
+
         $pageTitle  = t('product_title');
         $activePage = 'inventory';
 

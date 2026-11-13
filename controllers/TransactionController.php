@@ -49,13 +49,30 @@ class TransactionController
     }
 
     /**
-     * List recent transactions with customer details.
+     * List transactions — with optional GET filters and pagination.
      */
     public function index(): void
     {
-        $transactions = Transaction::all(50);
-        $pageTitle    = t('nav_transactions');
-        $activePage   = 'transactions';
+        // --- Collect filter values -------------------------------------------
+        $filters = [
+            'start_date' => trim(strip_tags($_GET['start_date'] ?? '')),
+            'end_date'   => trim(strip_tags($_GET['end_date']   ?? '')),
+            'cust_id'    => (int) ($_GET['cust_id'] ?? 0),
+            'type'       => trim(strip_tags($_GET['type'] ?? '')),
+        ];
+
+        $page = max(1, (int) ($_GET['p'] ?? 1));
+
+        $result = Transaction::paginate($filters, $page, 20);
+
+        $transactions = $result['items'];
+        $pagination   = $result;
+
+        // Customer dropdown list for the filter form
+        $allCustomers = Customer::all();
+
+        $pageTitle  = t('nav_transactions');
+        $activePage = 'transactions';
 
         require __DIR__ . '/../views/layout/header.php';
         require __DIR__ . '/../views/transactions/index.php';

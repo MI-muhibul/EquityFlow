@@ -81,6 +81,95 @@ class Product
         ];
     }
 
+    // =========================================================================
+    // paginate() — filtered list with 20-per-page pagination
+    // =========================================================================
+    /**
+     * Return a page of products matching optional filters.
+     *
+     * Filters accepted (all optional):
+     *   'name'     – partial match on products.name
+     *   'category' – exact match on products.category (dropdown selection)
+     *   'status'   – 'in_stock' | 'low_stock' | 'out_of_stock'
+     *
+     * Note: stock-status filtering is done in SQL so COUNT is accurate.
+     *
+     * Returns array{items, total, page, per_page, total_pages}
+     */
+    public static function paginate(array $filters = [], int $page = 1, int $perPage = 20): array
+    {
+        $pdo    = Database::getConnection();
+        $page   = max(1, $page);
+        $offset = ($page - 1) * $perPage;
+
+        $where  = [];
+        $params = [];
+
+        $name     = trim($filters['name']     ?? '');
+        $category = trim($filters['category'] ?? '');
+        $status   = trim($filters['status']   ?? '');
+
+        if ($name !== '') {
+            $where[]        = 'name LIKE :name';
+            $params[':name'] = '%' . $name . '%';
+        }
+        if ($category !== '') {
+            $where[]            = 'category = :category';
+            $params[':category'] = $category;
+        }
+        // Map stock-status filter to SQL expression
+        if ($status === 'out_of_stock') {
+            $where[] = 'stock <= 0';
+        } elseif ($status === 'low_stock') {
+            $where[] = 'stock > 0 AND stock <= min_stock';
+        } elseif ($status === 'in_stock') {
+            $where[] = 'stock > min_stock';
+        }
+
+        $whereSQL = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        // COUNT
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM products {$whereSQL}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        // Page rows
+        $listStmt = $pdo->prepare(
+            "SELECT * FROM products {$whereSQL}
+             ORDER BY category ASC, name ASC
+             LIMIT {$perPage} OFFSET {$offset}"
+        );
+        $listStmt->execute($params);
+        $rows = $listStmt->fetchAll();
+
+        // Attach computed metrics
+        foreach ($rows as &$row) {
+            $row['status_info']    = self::computeStatus((int)$row['stock'], (int)$row['min_stock']);
+            $row['profit_metrics'] = self::computeProfitMetrics((float)$row['retail_price'], (float)$row['cost_price']);
+        }
+        unset($row);
+
+        return [
+            'items'       => $rows,
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
+    }
+
+    /**
+     * Fetch all distinct product categories for the filter dropdown.
+     *
+     * @return array<string>
+     */
+    public static function allCategories(): array
+    {
+        $pdo  = Database::getConnection();
+        $stmt = $pdo->query('SELECT DISTINCT category FROM products ORDER BY category ASC');
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
     /**
      * Fetch all products ordered by category ASC, name ASC.
      * Attaches computed status array and profit metrics to each record.

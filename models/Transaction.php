@@ -279,6 +279,83 @@ class Transaction
         }
     }
 
+    // =========================================================================
+    // paginate() — filtered list with 20-per-page pagination
+    // =========================================================================
+    /**
+     * Return a page of transactions matching optional filters.
+     *
+     * Filters accepted (all optional):
+     *   'start_date' – YYYY-MM-DD, lower bound on created_at (uses idx_transactions_created_at)
+     *   'end_date'   – YYYY-MM-DD, upper bound on created_at
+     *   'cust_id'    – integer, exact match on cust_id  (uses idx_transactions_cust_id)
+     *   'type'       – 'credit' or 'payment'
+     *
+     * Returns array{items, total, page, per_page, total_pages}
+     */
+    public static function paginate(array $filters = [], int $page = 1, int $perPage = 20): array
+    {
+        $pdo    = Database::getConnection();
+        $page   = max(1, $page);
+        $offset = ($page - 1) * $perPage;
+
+        $where  = [];
+        $params = [];
+
+        $startDate = trim($filters['start_date'] ?? '');
+        $endDate   = trim($filters['end_date']   ?? '');
+        $custId    = (int) ($filters['cust_id'] ?? 0);
+        $type      = trim($filters['type'] ?? '');
+
+        if ($startDate !== '') {
+            $where[]              = 't.created_at >= :start_date';
+            // Include entire start day
+            $params[':start_date'] = $startDate . ' 00:00:00';
+        }
+        if ($endDate !== '') {
+            $where[]             = 't.created_at <= :end_date';
+            // Include entire end day
+            $params[':end_date'] = $endDate . ' 23:59:59';
+        }
+        if ($custId > 0) {
+            $where[]            = 't.cust_id = :cust_id';
+            $params[':cust_id'] = $custId;
+        }
+        if ($type === 'credit' || $type === 'payment') {
+            $where[]        = 't.type = :type';
+            $params[':type'] = $type;
+        }
+
+        $whereSQL = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        // COUNT
+        $countStmt = $pdo->prepare(
+            "SELECT COUNT(*) FROM transactions t {$whereSQL}"
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        // Page of rows — JOIN customers for display
+        $listStmt = $pdo->prepare(
+            "SELECT t.*, c.name AS customer_name, c.phone AS customer_phone
+             FROM transactions t
+             JOIN customers c ON t.cust_id = c.cust_id
+             {$whereSQL}
+             ORDER BY t.txn_id DESC
+             LIMIT {$perPage} OFFSET {$offset}"
+        );
+        $listStmt->execute($params);
+        $items = $listStmt->fetchAll();
+
+        return [
+            'items'       => $items,
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
+    }
+
     /**
      * Get recent transactions with customer details.
      *

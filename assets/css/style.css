@@ -810,3 +810,158 @@ input[type="hidden"] { display: none; }
     .table th { background: #eee !important; color: #000 !important; }
     a { color: #000; text-decoration: underline; }
 }
+
+
+/* --------------------------------------------------------------------------
+   16. Filter Forms
+   -------------------------------------------------------------------------- */
+.filter-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-title {
+    font-size: .82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-mid);
+    margin-bottom: .75rem;
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .625rem;
+    align-items: flex-end;
+}
+
+/* Each label+input group inside the filter bar */
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+    min-width: 140px;
+    flex: 1 1 160px;
+}
+
+.filter-group label {
+    font-size: .78rem;
+    color: var(--text-mid);
+    font-weight: 500;
+}
+
+.filter-group input,
+.filter-group select {
+    background: var(--bg-page);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-sm);
+    color: var(--text-high);
+    font-size: .9rem;
+    padding: .4rem .65rem;
+    height: 2.1rem;
+    transition: border-color .15s;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    border-color: var(--clr-blue);
+    outline: none;
+}
+
+/* Filter action buttons group */
+.filter-actions {
+    display: flex;
+    gap: .5rem;
+    align-items: flex-end;
+    padding-bottom: 0;
+}
+
+/* Small clear link */
+.btn-clear-filter {
+    display: inline-flex;
+    align-items: center;
+    padding: .4rem .75rem;
+    font-size: .82rem;
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-sm);
+    color: var(--text-mid);
+    background: transparent;
+    text-decoration: none;
+    cursor: pointer;
+    height: 2.1rem;
+    transition: border-color .15s, color .15s;
+}
+
+.btn-clear-filter:hover {
+    border-color: var(--clr-red);
+    color: var(--clr-red);
+}
+
+
+/* --------------------------------------------------------------------------
+   17. Pagination Bar
+   -------------------------------------------------------------------------- */
+.pagination-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .875rem 1.25rem;
+    border-top: 1px solid var(--border-dim);
+}
+
+.pagination-info {
+    white-space: nowrap;
+}
+
+.pagination-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+}
+
+/* Individual page link / number button */
+.page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 .55rem;
+    border: 1px solid var(--border-dim);
+    border-radius: var(--r-sm);
+    font-size: .82rem;
+    font-weight: 500;
+    color: var(--text-mid);
+    background: var(--bg-surface);
+    text-decoration: none;
+    transition: background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+}
+
+.page-link:hover {
+    background: var(--bg-hover);
+    border-color: var(--clr-blue);
+    color: var(--clr-blue);
+}
+
+/* Current page — highlighted */
+.page-link.active {
+    background: var(--clr-blue);
+    border-color: var(--clr-blue);
+    color: #fff;
+    cursor: default;
+    font-weight: 700;
+}
+
+/* Disabled (prev on first page, next on last, ellipsis) */
+.page-link.disabled {
+    opacity: .4;
+    cursor: default;
+    pointer-events: none;
+}
