@@ -7,14 +7,16 @@ declare(strict_types=1);
  * Protected shop overview dashboard.
  *
  * Enforces active authentication using require_login() and prepares the
- * 4 summary card values using real database queries:
- *   1. Total Customers: SELECT COUNT(*) FROM customers
- *   2. Total Outstanding (Due): SELECT COALESCE(SUM(balance), 0.00) FROM customers WHERE balance > 0
- *   3. Low-Stock Items: SELECT COUNT(*) FROM products WHERE stock <= min_stock
- *   4. This Month's Collections: SELECT COALESCE(SUM(amount), 0.00) FROM transactions
- *      WHERE type = 'payment' AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())
+ * 4 summary card values using real database queries scoped to the logged-in user:
+ *   1. Total Customers: SELECT COUNT(*) FROM customers WHERE user_id = :uid
+ *   2. Total Outstanding (Due): SELECT COALESCE(SUM(balance), 0.00) FROM customers WHERE user_id = :uid AND balance > 0
+ *   3. Low-Stock Items: SELECT COUNT(*) FROM products WHERE user_id = :uid AND stock <= min_stock
+ *   4. This Month's Collections: SELECT COALESCE(SUM(t.amount), 0.00) FROM transactions t
+ *      JOIN customers c ON t.cust_id = c.cust_id
+ *      WHERE c.user_id = :uid AND t.type = 'payment'
+ *        AND YEAR(t.created_at) = YEAR(CURDATE()) AND MONTH(t.created_at) = MONTH(CURDATE())
  *
- * Also queries low-stock and out-of-stock items for the dedicated alert panel.
+ * All queries are strictly scoped to user_id via PDO prepared statements.
  * -----------------------------------------------------------------------------
  * Rules:
  *   • Prepared statements only
@@ -40,27 +42,35 @@ class DashboardController {
         // Enforce active login and 30-minute inactivity timeout
         require_login();
 
+        $userId = (int)$_SESSION['user_id'];
         $pdo = Database::getConnection();
 
-        // 1. Total Customers Count
-        $stmtCust = $pdo->query('SELECT COUNT(*) FROM customers');
+        // 1. Total Customers Count (scoped to user_id)
+        $stmtCust = $pdo->prepare('SELECT COUNT(*) FROM customers WHERE user_id = :uid');
+        $stmtCust->execute(['uid' => $userId]);
         $customerCount = (int)$stmtCust->fetchColumn();
 
-        // 2. Total Outstanding Balance (sum of positive customer balances)
-        $stmtDue = $pdo->query('SELECT COALESCE(SUM(balance), 0.00) FROM customers WHERE balance > 0');
+        // 2. Total Outstanding Balance (sum of positive customer balances scoped to user_id)
+        $stmtDue = $pdo->prepare('SELECT COALESCE(SUM(balance), 0.00) FROM customers WHERE user_id = :uid AND balance > 0');
+        $stmtDue->execute(['uid' => $userId]);
         $totalOutstanding = (float)$stmtDue->fetchColumn();
 
-        // 3. Low-Stock & Out-of-Stock Items Count
-        $stmtLowStockCount = $pdo->query('SELECT COUNT(*) FROM products WHERE stock <= min_stock');
+        // 3. Low-Stock & Out-of-Stock Items Count (scoped to user_id)
+        $stmtLowStockCount = $pdo->prepare('SELECT COUNT(*) FROM products WHERE user_id = :uid AND stock <= min_stock');
+        $stmtLowStockCount->execute(['uid' => $userId]);
         $lowStockCount = (int)$stmtLowStockCount->fetchColumn();
 
-        // 4. This Month's Collections (Payments)
-        $stmtMonthCollections = $pdo->query(
-            "SELECT COALESCE(SUM(amount), 0.00) FROM transactions 
-             WHERE type = 'payment' 
-               AND YEAR(created_at) = YEAR(CURDATE()) 
-               AND MONTH(created_at) = MONTH(CURDATE())"
+        // 4. This Month's Collections (Payments scoped to user_id)
+        $stmtMonthCollections = $pdo->prepare(
+            "SELECT COALESCE(SUM(t.amount), 0.00)
+             FROM transactions t
+             JOIN customers c ON t.cust_id = c.cust_id
+             WHERE c.user_id = :uid
+               AND t.type = 'payment'
+               AND YEAR(t.created_at) = YEAR(CURDATE())
+               AND MONTH(t.created_at) = MONTH(CURDATE())"
         );
+        $stmtMonthCollections->execute(['uid' => $userId]);
         $monthCollections = (float)$stmtMonthCollections->fetchColumn();
 
         $stats = [
@@ -71,9 +81,10 @@ class DashboardController {
         ];
 
         // Fetch low-stock and out-of-stock items for the dashboard panel
-        $stmtLowStockItems = $pdo->query(
-            'SELECT * FROM products WHERE stock <= min_stock ORDER BY stock ASC, name ASC'
+        $stmtLowStockItems = $pdo->prepare(
+            'SELECT * FROM products WHERE user_id = :uid AND stock <= min_stock ORDER BY stock ASC, name ASC LIMIT 10'
         );
+        $stmtLowStockItems->execute(['uid' => $userId]);
         $lowStockProducts = $stmtLowStockItems->fetchAll();
 
         foreach ($lowStockProducts as &$item) {
@@ -95,8 +106,7 @@ class DashboardController {
      * handleRequest() — called by the front controller.
      * Dashboard has no sub-actions; always delegates to index().
      */
-    public function handleRequest(): void
-    {
+    public function handleRequest(): void {
         $this->index();
     }
 }
