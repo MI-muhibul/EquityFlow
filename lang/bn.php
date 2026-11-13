@@ -34,6 +34,8 @@ return [
     'card_total_outstanding'  => 'মোট বকেয়া পাওনা',
     'card_low_stock'          => 'মজুদ ঘাটতি পণ্য',
     'card_month_collections'  => 'চলতি মাসের নগদ আদায়',
+    'dashboard_low_stock_panel'=> 'মজুদ ঘাটতি ও ফুরিয়ে যাওয়া পণ্যের তালিকা',
+    'dashboard_no_low_stock'   => 'বর্তমানে দোকানে পর্যাপ্ত মালামাল মজুদ রয়েছে।',
 
     // অ্যাকশন বাটন
     'btn_save'                => 'সংরক্ষণ করুন',
@@ -147,9 +149,14 @@ return [
     'txn_running_balance'     => 'চলতি ব্যালেন্স',
     'txn_empty_list'          => 'এখনও কোনো লেনদেনের হিসাব লিপিবদ্ধ করা হয়নি।',
     'txn_select_customer'     => '-- কাস্টমার নির্বাচন করুন --',
+    'txn_select_product'      => '-- পণ্য নির্বাচন করুন (ঐচ্ছিক) --',
+    'txn_items_heading'       => 'বাকি বিক্রয়ের পণ্যসমূহ (৫টি সারি)',
+    'txn_items_subheading'    => 'পণ্য নির্বাচন করে পরিমাণ লিখুন। খুচরা মূল্য অনুযায়ী মোট টাকার হিসাব স্বয়ংক্রিয়ভাবে হবে।',
+    'txn_direct_amount'       => 'অথবা সরাসরি টাকার পরিমাণ লিখুন (পণ্য ছাড়া)',
     'error_payment_exceeds_balance' => 'জমার পরিমাণ কাস্টমারের বর্তমান বাকির চেয়ে বেশি হতে পারে না।',
     'error_customer_not_found'=> 'নির্বাচিত কাস্টমার পাওয়া যায়নি।',
     'error_invalid_txn_type'  => 'লেনদেনের ধরন সঠিক নয়।',
+    'error_stock_insufficient_item' => 'পণ্যের পর্যাপ্ত মজুদ নেই: :product (মজুদ আছে: :stock, বিক্রির অনুরোধ: :requested)।',
     'msg_txn_recorded'        => 'লেনদেন সফলভাবে সম্পন্ন হয়েছে।',
 
     // পণ্য ও ইনভেন্টরি মডিউল

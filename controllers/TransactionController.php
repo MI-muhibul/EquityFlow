@@ -6,7 +6,7 @@ declare(strict_types=1);
  * -----------------------------------------------------------------------------
  * Controller handling:
  *   - Listing recent transactions (?page=transactions)
- *   - Showing form to record credit sale or payment (?page=transactions&action=create)
+ *   - Showing form to record credit sale (with 5 product rows) or payment
  *   - Processing POST submissions with CSRF verification and PDO atomic transactions
  * -----------------------------------------------------------------------------
  * Rules:
@@ -23,6 +23,7 @@ require_once __DIR__ . '/../config/auth_guard.php';
 require_once __DIR__ . '/../config/csrf.php';
 require_once __DIR__ . '/../helpers/format.php';
 require_once __DIR__ . '/../models/Customer.php';
+require_once __DIR__ . '/../models/Product.php';
 require_once __DIR__ . '/../models/Transaction.php';
 
 class TransactionController
@@ -78,15 +79,38 @@ class TransactionController
             // Extract and clean input parameters
             $custId = isset($_POST['cust_id']) ? (int)$_POST['cust_id'] : 0;
             $type   = isset($_POST['type']) && is_string($_POST['type']) ? trim($_POST['type']) : '';
-            $amount = isset($_POST['amount']) ? (float)$_POST['amount'] : 0.0;
+            $directAmount = isset($_POST['amount']) ? (float)$_POST['amount'] : 0.0;
             $note   = isset($_POST['note']) && is_string($_POST['note']) ? trim($_POST['note']) : null;
             $ownerId = current_user_id() ?? 1;
 
+            // Extract items if submitted for credit sale
+            $items = [];
+            if ($type === 'credit' && isset($_POST['items']) && is_array($_POST['items'])) {
+                foreach ($_POST['items'] as $row) {
+                    $prodId = isset($row['prod_id']) ? (int)$row['prod_id'] : 0;
+                    $qty    = isset($row['qty']) ? (float)$row['qty'] : 0.0;
+                    if ($prodId > 0 && $qty > 0.0) {
+                        $items[] = [
+                            'prod_id' => $prodId,
+                            'qty'     => $qty,
+                        ];
+                    }
+                }
+            }
+
             // Execute transactional recording in model
-            $result = Transaction::record($custId, $ownerId, $amount, $type, $note);
+            $result = Transaction::record($custId, $ownerId, $directAmount, $type, $note, $items);
 
             if (!$result['success']) {
                 $errorMsg = t($result['error_key'] ?? 'error_db_error');
+
+                // Replace placeholders if any
+                if (!empty($result['error_params'])) {
+                    foreach ($result['error_params'] as $k => $v) {
+                        $errorMsg = str_replace($k, $v, $errorMsg);
+                    }
+                }
+
                 flash_set('error', $errorMsg);
                 // Retain selected customer in query string if provided
                 header('Location: index.php?page=transactions&action=create' . ($custId > 0 ? '&cust_id=' . $custId : ''));
@@ -98,11 +122,12 @@ class TransactionController
             exit;
         }
 
-        // GET request: show form
-        $customers      = Customer::all();
+        // GET request: show form with customer and product lists
+        $customers       = Customer::all();
+        $products        = Product::all();
         $preselectCustId = isset($_GET['cust_id']) ? (int)$_GET['cust_id'] : 0;
-        $pageTitle      = t('txn_new_title');
-        $activePage     = 'transactions';
+        $pageTitle       = t('txn_new_title');
+        $activePage      = 'transactions';
 
         require __DIR__ . '/../views/layout/header.php';
         require __DIR__ . '/../views/transactions/create.php';

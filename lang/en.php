@@ -33,6 +33,8 @@ return [
     'card_total_outstanding'  => 'Total Outstanding',
     'card_low_stock'          => 'Low-Stock Items',
     'card_month_collections'  => "This Month's Collections",
+    'dashboard_low_stock_panel'=> 'Low / Out of Stock Attention Required',
+    'dashboard_no_low_stock'   => 'All items are currently well stocked.',
 
     // Action Buttons
     'btn_save'                => 'Save',
@@ -146,9 +148,14 @@ return [
     'txn_running_balance'     => 'Running Balance',
     'txn_empty_list'          => 'No transactions recorded yet.',
     'txn_select_customer'     => '-- Select Customer --',
+    'txn_select_product'      => '-- Select Item (Optional) --',
+    'txn_items_heading'       => 'Credit Sale Products (5 Rows)',
+    'txn_items_subheading'    => 'Select products and enter quantities. Total amount will be auto-calculated from catalog retail prices.',
+    'txn_direct_amount'       => 'Or Enter Direct Amount (No Products)',
     'error_payment_exceeds_balance' => 'Payment amount cannot exceed the current customer balance.',
     'error_customer_not_found'=> 'Selected customer was not found.',
     'error_invalid_txn_type'  => 'Invalid transaction type selected.',
+    'error_stock_insufficient_item' => 'Insufficient stock for product: :product (Available: :stock, Requested: :requested).',
     'msg_txn_recorded'        => 'Transaction recorded successfully.',
 
     // Product & Stock Module
