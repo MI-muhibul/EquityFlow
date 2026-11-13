@@ -39,6 +39,11 @@ $routeWhitelist = [
     'settings'     => 'SettingController',
     'backup'       => 'BackupController',
     'auth'         => 'AuthController',
+    'login'        => 'AuthController',
+    'signup'       => 'AuthController',
+    'logout'       => 'AuthController',
+    'home'         => 'AuthController',
+    'google-login' => 'AuthController',
     'db-check'     => 'DbCheckController',
 ];
 

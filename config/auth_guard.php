@@ -26,7 +26,7 @@ function require_login(): void {
     // 1. Check if user is not logged in
     if (empty($_SESSION['user_id'])) {
         flash_set('error', t('error_invalid_login'));
-        header('Location: index.php?page=auth');
+        header('Location: index.php?page=login');
         exit;
     }
 
@@ -38,12 +38,25 @@ function require_login(): void {
         // Start fresh empty session to display translated timeout alert
         init_secure_session();
         flash_set('error', t('error_session_timeout'));
-        header('Location: index.php?page=auth');
+        header('Location: index.php?page=login');
         exit;
     }
 
     // 3. Activity verified: refresh timestamp to current time
     $_SESSION['last_activity'] = $now;
+}
+
+/**
+ * Redirect logged-in shop owners away from guest pages (e.g. login, signup) to dashboard.
+ */
+function redirect_if_logged_in(): void {
+    if (session_status() === PHP_SESSION_NONE) {
+        init_secure_session();
+    }
+    if (!empty($_SESSION['user_id'])) {
+        header('Location: index.php?page=dashboard');
+        exit;
+    }
 }
 
 /**

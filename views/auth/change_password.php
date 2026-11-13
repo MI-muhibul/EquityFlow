@@ -3,17 +3,30 @@ declare(strict_types=1);
 
 /**
  * views/auth/change_password.php
- * Change password form view.
- * Protected by require_login(), uses CSRF defense and master layout.
+ * -----------------------------------------------------------------------------
+ * Shop Owner Change / Set Password View.
+ * - Protected by require_login()
+ * - CSRF defense token
+ * - Zero JavaScript, high-contrast dark theme
+ * - If user account is Google-only (no existing password), prompts to "Set a Password"
+ *   without asking for an old/current password.
+ * - Otherwise, requires verification of current password before rehashing new password.
+ * -----------------------------------------------------------------------------
  */
+
+$hasPassword = $hasPassword ?? (isset($_SESSION['user_id']) ? User::hasPassword((int)$_SESSION['user_id']) : true);
+$formTitle   = $hasPassword ? t('btn_change_password') : t('set_password');
+$formDesc    = $hasPassword
+    ? (t('min_8_chars_desc') ?? 'Password must be at least 8 characters long.')
+    : t('set_password_desc');
 ?>
 
 <div class="card" style="max-width: 520px; margin: 1.5rem auto;">
     <div class="card-head">
         <div>
-            <h1 class="card-title"><?= e(t('btn_change_password')) ?></h1>
-            <div class="card-subtitle">
-                নিরাপত্তার স্বার্থে নতুন পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।
+            <h1 class="card-title"><?= e($formTitle) ?></h1>
+            <div class="card-subtitle text-muted text-sm" style="margin-top: 0.25rem;">
+                <?= e($formDesc) ?>
             </div>
         </div>
     </div>
@@ -26,28 +39,36 @@ declare(strict_types=1);
         </div>
     <?php endif; ?>
 
-    <!-- Change Password Form -->
+    <!-- Password Form -->
     <form method="POST" action="index.php?page=auth&amp;action=change_password" novalidate>
         <!-- CSRF Defense Hidden Token -->
         <?= csrf_field() ?>
 
-        <!-- Current Password -->
-        <div class="form-group">
-            <label for="current_password" class="form-label">
-                <?= e(t('label_current_password')) ?> <span class="req">*</span>
-            </label>
-            <input type="password"
-                   id="current_password"
-                   name="current_password"
-                   class="form-control"
-                   required
-                   autocomplete="current-password">
-        </div>
+        <?php if ($hasPassword): ?>
+            <!-- Current Password (only asked if user already has a password) -->
+            <div class="form-group">
+                <label for="current_password" class="form-label">
+                    <?= e(t('label_current_password')) ?> <span class="req">*</span>
+                </label>
+                <input type="password"
+                       id="current_password"
+                       name="current_password"
+                       class="form-control"
+                       required
+                       autocomplete="current-password">
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info" role="status" style="margin-bottom: 1.25rem;">
+                <span class="alert-icon" aria-hidden="true">&#x2139;</span>
+                <span class="alert-text"><?= e(t('set_password_desc')) ?></span>
+            </div>
+        <?php endif; ?>
 
         <!-- New Password -->
         <div class="form-group">
             <label for="new_password" class="form-label">
                 <?= e(t('label_new_password')) ?> <span class="req">*</span>
+                <span class="text-muted text-sm">(Min 8 chars)</span>
             </label>
             <input type="password"
                    id="new_password"
@@ -56,7 +77,6 @@ declare(strict_types=1);
                    minlength="8"
                    required
                    autocomplete="new-password">
-            <div class="form-hint">কমপক্ষে ৮টি অক্ষর (অক্ষর, সংখ্যা ও প্রতীকের মিশ্রণ শ্রেয়)।</div>
         </div>
 
         <!-- Confirm New Password -->
@@ -74,12 +94,12 @@ declare(strict_types=1);
         </div>
 
         <!-- Form Actions -->
-        <div class="card-foot">
+        <div class="card-foot" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
             <a href="index.php?page=dashboard" class="btn btn-secondary">
                 <?= e(t('btn_cancel')) ?>
             </a>
             <button type="submit" class="btn btn-primary">
-                <?= e(t('btn_update')) ?>
+                <?= e($hasPassword ? t('btn_update') : t('btn_set_password')) ?>
             </button>
         </div>
     </form>
