@@ -51,8 +51,39 @@ class Product
     }
 
     /**
+     * Compute profit per unit (retail - cost) and margin percentage.
+     *
+     * @param float $retailPrice
+     * @param float $costPrice
+     * @return array{
+     *     profit_per_unit: float,
+     *     margin_pct: float,
+     *     is_loss: bool
+     * }
+     */
+    public static function computeProfitMetrics(float $retailPrice, float $costPrice): array
+    {
+        $profit = round($retailPrice - $costPrice, 2);
+        $isLoss = ($retailPrice < $costPrice);
+
+        // Margin calculation: (Profit / Retail Price) * 100
+        // When retailPrice <= 0, default margin to 0.0%
+        if ($retailPrice > 0.0) {
+            $margin = round(($profit / $retailPrice) * 100.0, 2);
+        } else {
+            $margin = 0.0;
+        }
+
+        return [
+            'profit_per_unit' => $profit,
+            'margin_pct'      => $margin,
+            'is_loss'         => $isLoss,
+        ];
+    }
+
+    /**
      * Fetch all products ordered by category ASC, name ASC.
-     * Attaches computed status array to each record.
+     * Attaches computed status array and profit metrics to each record.
      *
      * @return array
      */
@@ -63,7 +94,8 @@ class Product
         $rows = $stmt->fetchAll();
 
         foreach ($rows as &$row) {
-            $row['status_info'] = self::computeStatus((int)$row['stock'], (int)$row['min_stock']);
+            $row['status_info']    = self::computeStatus((int)$row['stock'], (int)$row['min_stock']);
+            $row['profit_metrics'] = self::computeProfitMetrics((float)$row['retail_price'], (float)$row['cost_price']);
         }
         unset($row);
 
@@ -84,10 +116,63 @@ class Product
         $row = $stmt->fetch();
 
         if ($row) {
-            $row['status_info'] = self::computeStatus((int)$row['stock'], (int)$row['min_stock']);
+            $row['status_info']    = self::computeStatus((int)$row['stock'], (int)$row['min_stock']);
+            $row['profit_metrics'] = self::computeProfitMetrics((float)$row['retail_price'], (float)$row['cost_price']);
         }
 
         return $row;
+    }
+
+    /**
+     * Fetch profit history from sale_items data for this product, ordered chronologically.
+     * Computes profit = (unit_price - unit_cost) * qty for each sale item.
+     *
+     * @param int $prodId
+     * @return array<int, array{
+     *     item_id: int,
+     *     txn_id: int,
+     *     qty: float,
+     *     unit_price: float,
+     *     unit_cost: float,
+     *     unit_profit: float,
+     *     total_profit: float,
+     *     created_at: string
+     * }>
+     */
+    public static function getSaleProfitHistory(int $prodId): array
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare(
+            'SELECT s.item_id, s.txn_id, s.qty, s.unit_price, s.unit_cost, t.created_at
+             FROM sale_items s
+             JOIN transactions t ON s.txn_id = t.txn_id
+             WHERE s.prod_id = :prod_id
+             ORDER BY t.created_at ASC, s.item_id ASC'
+        );
+        $stmt->execute([':prod_id' => $prodId]);
+        $rows = $stmt->fetchAll();
+
+        $history = [];
+        foreach ($rows as $r) {
+            $qty = (float)$r['qty'];
+            $price = (float)$r['unit_price'];
+            $cost = (float)$r['unit_cost'];
+            $unitProfit = round($price - $cost, 2);
+            $totalProfit = round($unitProfit * $qty, 2);
+
+            $history[] = [
+                'item_id'      => (int)$r['item_id'],
+                'txn_id'       => (int)$r['txn_id'],
+                'qty'          => $qty,
+                'unit_price'   => $price,
+                'unit_cost'    => $cost,
+                'unit_profit'  => $unitProfit,
+                'total_profit' => $totalProfit,
+                'created_at'   => (string)$r['created_at'],
+            ];
+        }
+
+        return $history;
     }
 
     /**

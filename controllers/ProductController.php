@@ -40,6 +40,10 @@ class ProductController
         $action = isset($_GET['action']) && is_string($_GET['action']) ? trim($_GET['action']) : 'index';
 
         switch ($action) {
+            case 'view':
+            case 'detail':
+                $this->detail();
+                break;
             case 'create':
                 $this->create();
                 break;
@@ -57,7 +61,7 @@ class ProductController
     }
 
     /**
-     * List all products with stock status badges.
+     * List all products with stock status badges and profit margins.
      */
     public function index(): void
     {
@@ -67,6 +71,38 @@ class ProductController
 
         require __DIR__ . '/../views/layout/header.php';
         require __DIR__ . '/../views/products/index.php';
+        require __DIR__ . '/../views/layout/footer.php';
+    }
+
+    /**
+     * Product detail page with unit profit, margin %, loss warning, and sales profit sparkline trend.
+     */
+    public function detail(): void
+    {
+        $id = (int)($_GET['id'] ?? 0);
+        $product = Product::findById($id);
+
+        if (!$product) {
+            flash_set('error', t('error_product_not_found'));
+            header('Location: index.php?page=inventory');
+            exit;
+        }
+
+        require_once __DIR__ . '/../helpers/sparkline.php';
+
+        $saleHistory = Product::getSaleProfitHistory($id);
+
+        // Extract trend values: total profit per sale item
+        $profitTrendPoints = [];
+        foreach ($saleHistory as $item) {
+            $profitTrendPoints[] = (float)$item['total_profit'];
+        }
+
+        $pageTitle  = $product['name'] . ' — ' . t('product_detail_title');
+        $activePage = 'inventory';
+
+        require __DIR__ . '/../views/layout/header.php';
+        require __DIR__ . '/../views/products/detail.php';
         require __DIR__ . '/../views/layout/footer.php';
     }
 
