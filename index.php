@@ -42,7 +42,7 @@ $routeWhitelist = [
     'login'        => 'AuthController',
     'signup'       => 'AuthController',
     'logout'       => 'AuthController',
-    'home'            => 'AuthController',
+    'home'            => 'HomeController',
     'google-login'    => 'AuthController',
     'google-callback' => 'AuthController',
     'db-check'        => 'DbCheckController',
@@ -194,11 +194,12 @@ function renderErrorView(int $statusCode, string $title, string $message, string
 // -----------------------------------------------------------------------------
 // Whitelist Verification
 // -----------------------------------------------------------------------------
-if (!array_key_exists($requestedPage, $routeWhitelist)) {
-    $title = t('page_not_found');
-    $msg   = t('page_not_found_desc');
-    renderErrorView(404, $title, $msg, 'Route: ?page=' . $requestedPage, $currentLang);
-}
+    // Fallback: render styled 404 page
+    $activePage = '404';
+    $pageTitle = t('page_not_found');
+    $errorMsg = t('page_not_found_desc');
+    require __DIR__ . '/views/404.php';
+    exit;
 
 // -----------------------------------------------------------------------------
 // Controller File Resolution & Dispatch
