@@ -217,6 +217,16 @@ return [
     'settings_shop_address'   => 'দোকানের ঠিকানা',
     'settings_language'       => 'ডিফল্ট ভাষা নির্বাচন',
     'settings_backup_heading' => 'ডাটাবেজ ব্যাকআপ ও নিরাপত্তা',
+    'settings_default_credit_limit' => 'কাস্টমারের ডিফল্ট বাকির সীমা (৳)',
+    'settings_default_min_stock'    => 'ডিফল্ট ন্যূনতম মজুদ সতর্কতা',
+    'settings_backup_desc'    => 'সকল ডাটাবেজ টেবিল (কাস্টমার, লেনদেন, ইনভেন্টরি, খাতা ইত্যাদি)-এর সম্পূর্ণ SQL ডাম্প তৈরি করুন।',
+    'settings_btn_create_backup' => 'এখনই ব্যাকআপ তৈরি করুন',
+    'settings_backups_list'   => 'সংরক্ষিত ডাটাবেজ ব্যাকআপসমূহ',
+    'settings_no_backups'     => 'এখনও কোনো ব্যাকআপ ফাইল তৈরি করা হয়নি।',
+    'settings_filename'       => 'ফাইলের নাম',
+    'settings_filesize'       => 'ফাইলের আকার',
+    'settings_created_at'     => 'তৈরির সময়',
+    'settings_download'       => 'ডাউনলোড',
 
     // মাসের নামসমূহ (বাংলা ক্যালেন্ডার রূপান্তর)
     'month_1'                 => 'জানুয়ারি',

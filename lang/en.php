@@ -216,6 +216,16 @@ return [
     'settings_shop_address'   => 'Shop Address',
     'settings_language'       => 'Default Language',
     'settings_backup_heading' => 'Database Backup & Safety',
+    'settings_default_credit_limit' => 'Default Customer Credit Limit (৳)',
+    'settings_default_min_stock'    => 'Default Minimum Stock Alert',
+    'settings_backup_desc'    => 'Create a full SQL dump of all database tables (customers, transactions, products, ledger entries).',
+    'settings_btn_create_backup' => 'Create Backup Now',
+    'settings_backups_list'   => 'Stored Database Backups',
+    'settings_no_backups'     => 'No backup archives created yet.',
+    'settings_filename'       => 'Filename',
+    'settings_filesize'       => 'File Size',
+    'settings_created_at'     => 'Created At',
+    'settings_download'       => 'Download',
 
     // Months (Calendar)
     'month_1'                 => 'January',
