@@ -2,22 +2,28 @@
 declare(strict_types=1);
 
 /**
- * EquityFlow - Bilingual Localization Engine
+ * config/lang.php
+ * -----------------------------------------------------------------------------
+ * EquityFlow Bilingual Localization Engine (English & Bangla)
  *
- * Provides translation helpers, fallback resolution (Bangla -> English -> Key),
- * placeholder replacement, and language session switching with safe redirection.
+ * Rules:
+ *   - t($key, $replace = []): Resolves translation from active language.
+ *     Falls back to English ('en'), then to $key itself if missing.
+ *   - set_lang(?string $lang = null): Validates 'bn' or 'en', updates session,
+ *     and safely redirects back to HTTP_REFERER (sanitized) or dashboard.
+ *   - get_current_lang(): Returns active language ('bn' by default).
+ * -----------------------------------------------------------------------------
  */
 
-// Global dictionary cache across function calls
+// Memory cache for language arrays to prevent multiple disk reads per request
 $GLOBALS['_lang_cache'] = [];
 
 /**
- * Get the currently active language code ('bn' or 'en').
- * Defaults to 'bn' (Bangla) if unset or invalid.
+ * Get active language code ('bn' or 'en'). Defaults to 'bn' (Bangla).
  */
-function get_current_lang(): string {
+function get_current_lang(): string
+{
     if (session_status() === PHP_SESSION_NONE) {
-        // Ensure session is started if not already
         if (file_exists(__DIR__ . '/session.php')) {
             require_once __DIR__ . '/session.php';
             if (function_exists('init_secure_session')) {
@@ -35,12 +41,13 @@ function get_current_lang(): string {
 }
 
 /**
- * Load and cache a language dictionary array from disk.
+ * Load dictionary array for a given language code.
  *
  * @param string $langCode 'bn' or 'en'
  * @return array<string, string>
  */
-function load_language_dict(string $langCode): array {
+function load_language_dict(string $langCode): array
+{
     if (isset($GLOBALS['_lang_cache'][$langCode])) {
         return $GLOBALS['_lang_cache'][$langCode];
     }
@@ -59,35 +66,36 @@ function load_language_dict(string $langCode): array {
 }
 
 /**
- * Translate a key with fallback hierarchy and placeholder interpolation.
- * Hierarchy: Active Language ('bn') -> English ('en') -> $key itself.
+ * Translate a key.
+ * Fallback hierarchy: Active Language ('bn') -> English ('en') -> $key.
  *
- * @param string $key Translation dictionary key
- * @param array<string, scalar> $replace Key-value pairs for string replacement (e.g. [':attempts' => 3])
- * @return string Translated string
+ * @param string $key Dictionary key
+ * @param array<string, scalar> $replace Optional placeholder array e.g. [':attempts' => 3]
+ * @return string
  */
-function t(string $key, array $replace = []): string {
+function t(string $key, array $replace = []): string
+{
     $activeLang = get_current_lang();
     $activeDict = load_language_dict($activeLang);
 
-    // 1. Try active language dictionary
-    if (isset($activeDict[$key])) {
+    // 1. Try active language
+    if (isset($activeDict[$key]) && is_string($activeDict[$key])) {
         $text = $activeDict[$key];
     } else {
-        // 2. Fallback to English dictionary if active language is not English
+        // 2. Fall back to English
         $enDict = load_language_dict('en');
-        if (isset($enDict[$key])) {
+        if (isset($enDict[$key]) && is_string($enDict[$key])) {
             $text = $enDict[$key];
         } else {
-            // 3. Fallback to the raw key string
+            // 3. Fall back to raw key
             $text = $key;
         }
     }
 
-    // Perform placeholder replacement if arguments provided
+    // Replace placeholders if any provided
     if (!empty($replace)) {
-        foreach ($replace as $placeholder => $value) {
-            $text = str_replace((string)$placeholder, (string)$value, $text);
+        foreach ($replace as $placeholder => $val) {
+            $text = str_replace((string)$placeholder, (string)$val, $text);
         }
     }
 
@@ -95,61 +103,58 @@ function t(string $key, array $replace = []): string {
 }
 
 /**
- * Echo HTML-escaped translation string.
- *
- * @param string $key Translation dictionary key
- * @param array<string, scalar> $replace Key-value pairs for string replacement
+ * Escaped translation output helper.
  */
-function _e(string $key, array $replace = []): void {
+function _e(string $key, array $replace = []): void
+{
     echo htmlspecialchars(t($key, $replace), ENT_QUOTES, 'UTF-8');
 }
 
 /**
- * Store the language choice in session after validating it is 'bn' or 'en',
- * then safely redirect back to the previous page.
+ * Switch session language after validating 'bn' or 'en', then redirect back.
  *
- * @param string|null $lang Target language code ('bn' or 'en'). If null, checks $_GET or $_POST.
+ * @param string|null $lang
  * @return never
  */
-function set_lang(?string $lang = null): void {
+function set_lang(?string $lang = null): void
+{
     if (session_status() === PHP_SESSION_NONE) {
         if (file_exists(__DIR__ . '/session.php')) {
             require_once __DIR__ . '/session.php';
             if (function_exists('init_secure_session')) {
                 init_secure_session();
             }
-        } else {
+        } elseif (!headers_sent()) {
             session_start();
+        } else {
+            @session_start();
         }
     }
 
-    // Extract language code from parameter or request superglobals
     if ($lang === null) {
         $lang = $_GET['lang'] ?? $_POST['lang'] ?? null;
     }
 
-    // Validate that language is strictly 'bn' or 'en'
+    // Validate strictly: only 'bn' or 'en' allowed
     if (is_string($lang) && in_array(strtolower($lang), ['bn', 'en'], true)) {
         $_SESSION['lang'] = strtolower($lang);
     }
 
-    // Determine safe redirection target
+    // Redirection target determination with open-redirect mitigation
     $redirectUrl = 'index.php?page=dashboard';
 
     if (!empty($_SERVER['HTTP_REFERER'])) {
         $referer = (string)$_SERVER['HTTP_REFERER'];
         $parts   = parse_url($referer);
 
-        // Security check: only allow same-host redirection (mitigate open redirect)
         $currentHost = $_SERVER['HTTP_HOST'] ?? '';
         $refererHost = $parts['host'] ?? '';
 
         if ($refererHost === '' || $refererHost === $currentHost) {
-            // Remove 'lang=...' parameter from query string to prevent stale loops
             $path = $parts['path'] ?? 'index.php';
             if (!empty($parts['query'])) {
                 parse_str($parts['query'], $queryParams);
-                unset($queryParams['lang']);
+                unset($queryParams['lang']); // Strip lang switch parameter
                 $newQuery = http_build_query($queryParams);
                 $redirectUrl = $path . ($newQuery !== '' ? '?' . $newQuery : '');
             } else {
@@ -158,7 +163,6 @@ function set_lang(?string $lang = null): void {
         }
     }
 
-    // Execute safe HTTP redirect
     header('Location: ' . $redirectUrl);
     exit;
 }
