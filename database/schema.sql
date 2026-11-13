@@ -1,5 +1,5 @@
 -- =============================================================================
--- EquityFlow - Database Schema
+-- EquityFlow - Database Schema (Multi-Tenant / Scoped per Shop Owner)
 -- Project: Digital Khata Ledger for Small Retail Shops in Bangladesh
 -- Engine: MySQL / MariaDB (InnoDB, utf8mb4)
 -- =============================================================================
@@ -8,44 +8,57 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- -----------------------------------------------------------------------------
 -- 1. Table: users
--- Stores authenticated shop owners and staff members
+-- Stores authenticated shop owners.
+-- Supports email + password (local), Google OAuth 2.0 (google), or linked (both).
+-- password_hash is NULL for Google-only accounts.
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
     `user_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `username` VARCHAR(50) NOT NULL UNIQUE,
-    `password_hash` VARCHAR(255) NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `email` VARCHAR(191) NOT NULL UNIQUE,
+    `password_hash` VARCHAR(255) NULL,
+    `google_id` VARCHAR(191) NULL UNIQUE,
+    `avatar_url` VARCHAR(255) NULL,
+    `auth_provider` ENUM('local', 'google', 'both') NOT NULL DEFAULT 'local',
     `pin_hash` VARCHAR(255) NULL,
-    `role` ENUM('admin', 'staff') NOT NULL DEFAULT 'staff',
+    `shop_name` VARCHAR(150) NOT NULL,
     `failed_attempts` INT UNSIGNED NOT NULL DEFAULT 0,
     `locked` TINYINT(1) NOT NULL DEFAULT 0,
-    `last_login` DATETIME NULL,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `last_login` DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 2. Table: customers
--- Stores customer profiles, balances (due/baki), and credit limits
--- Indexes: customers.name, customers.phone
+-- Stores customer profiles scoped to a specific shop owner (`user_id`).
+-- Phone numbers are unique per shop owner: UNIQUE(user_id, phone).
+-- Indexes on name, phone, and user_id.
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `customers`;
 CREATE TABLE `customers` (
     `cust_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
     `name` VARCHAR(100) NOT NULL,
-    `phone` VARCHAR(20) NOT NULL UNIQUE,
+    `phone` VARCHAR(20) NOT NULL,
     `address` TEXT NULL,
     `balance` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     `credit_limit` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     `join_date` DATE NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_user_phone` (`user_id`, `phone`),
+    INDEX `idx_customers_user_id` (`user_id`),
     INDEX `idx_customers_name` (`name`),
-    INDEX `idx_customers_phone` (`phone`)
+    INDEX `idx_customers_phone` (`phone`),
+    CONSTRAINT `fk_customers_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+        ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 3. Table: transactions
--- Records daily Khata entries (credit/baki vs payment/joma)
--- Indexes: transactions.created_at, transactions.cust_id
+-- Records daily Khata entries (credit/baki vs payment/joma).
+-- Indexes: transactions.created_at, transactions.cust_id.
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `transactions`;
 CREATE TABLE `transactions` (
@@ -64,23 +77,31 @@ CREATE TABLE `transactions` (
 
 -- -----------------------------------------------------------------------------
 -- 4. Table: products
--- Inventory items commonly sold in grocery/general shops
+-- Inventory items scoped to a specific shop owner (`user_id`).
+-- Product names are unique per shop owner: UNIQUE(user_id, name).
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `products`;
 CREATE TABLE `products` (
     `prod_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `name` VARCHAR(150) NOT NULL UNIQUE,
+    `user_id` INT UNSIGNED NOT NULL,
+    `name` VARCHAR(150) NOT NULL,
     `category` VARCHAR(100) NOT NULL,
     `retail_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     `cost_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     `stock` INT NOT NULL DEFAULT 0,
     `min_stock` INT NOT NULL DEFAULT 5,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_user_product_name` (`user_id`, `name`),
+    INDEX `idx_products_user_id` (`user_id`),
+    INDEX `idx_products_category` (`category`),
+    CONSTRAINT `fk_products_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+        ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 5. Table: sale_items
--- Line items associated with credit/sales transactions
+-- Line items associated with credit sales transactions.
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sale_items`;
 CREATE TABLE `sale_items` (
@@ -102,7 +123,7 @@ CREATE TABLE `sale_items` (
 
 -- -----------------------------------------------------------------------------
 -- 6. Table: ledger_entries
--- Audit ledger trail mapping each transaction to an authorized user/owner
+-- Audit ledger trail mapping each transaction to an authorized owner (`user_id`).
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `ledger_entries`;
 CREATE TABLE `ledger_entries` (
@@ -122,27 +143,38 @@ CREATE TABLE `ledger_entries` (
 
 -- -----------------------------------------------------------------------------
 -- 7. Table: reports
--- Pre-computed financial aggregations and periodic summaries
+-- Pre-computed financial aggregations scoped to a specific shop owner (`user_id`).
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `reports`;
 CREATE TABLE `reports` (
     `report_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
     `period` VARCHAR(50) NOT NULL,
     `type` VARCHAR(50) NOT NULL,
     `total` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     `generated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_reports_user_id` (`user_id`),
     INDEX `idx_reports_period` (`period`),
-    INDEX `idx_reports_type` (`type`)
+    INDEX `idx_reports_type` (`type`),
+    CONSTRAINT `fk_reports_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+        ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 8. Table: settings
--- Key-value storage for shop configuration, business info & locale settings
+-- Key-value storage for shop configuration, scoped to shop owner (`user_id`).
+-- PRIMARY KEY: (user_id, skey).
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `settings`;
 CREATE TABLE `settings` (
-    `skey` VARCHAR(64) PRIMARY KEY,
-    `svalue` TEXT NULL
+    `user_id` INT UNSIGNED NOT NULL,
+    `skey` VARCHAR(64) NOT NULL,
+    `svalue` TEXT NULL,
+    PRIMARY KEY (`user_id`, `skey`),
+    CONSTRAINT `fk_settings_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+        ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
