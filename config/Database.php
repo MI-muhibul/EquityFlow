@@ -32,20 +32,16 @@ class Database {
      */
     public static function getConnection(): PDO {
         if (self::$instance === null) {
-            // Load credentials: try local config.php first, fallback to config.sample.php
-            $configFile = __DIR__ . '/config.php';
-            if (file_exists($configFile)) {
-                require_once $configFile;
-            } elseif (file_exists(__DIR__ . '/config.sample.php')) {
-                require_once __DIR__ . '/config.sample.php';
-            }
+            // Load .env + constants (env.php guards against double-loading)
+            // constants.php also loads config/config.php as legacy fallback
+            require_once __DIR__ . '/constants.php';
 
-            // Read database constants with safe fallbacks
-            $host    = defined('DB_HOST') ? DB_HOST : 'localhost';
-            $port    = defined('DB_PORT') ? DB_PORT : '3306';
-            $dbname  = defined('DB_NAME') ? DB_NAME : 'equityflow';
-            $user    = defined('DB_USER') ? DB_USER : 'root';
-            $pass    = defined('DB_PASS') ? DB_PASS : '';
+            // Read database constants (set by constants.php from .env)
+            $host    = defined('DB_HOST')    ? DB_HOST    : 'localhost';
+            $port    = defined('DB_PORT')    ? DB_PORT    : '3306';
+            $dbname  = defined('DB_NAME')    ? DB_NAME    : 'equityflow';
+            $user    = defined('DB_USER')    ? DB_USER    : 'root';
+            $pass    = defined('DB_PASS')    ? DB_PASS    : '';
             $charset = defined('DB_CHARSET') ? DB_CHARSET : 'utf8mb4';
 
             // DSN with host, port, database name, and utf8mb4 charset

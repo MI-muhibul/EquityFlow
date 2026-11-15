@@ -9,16 +9,19 @@ declare(strict_types=1);
  *   - Add product (?page=inventory&action=create)
  *   - Edit product (?page=inventory&action=edit&id=X)
  *   - Adjust / Update stock (?page=inventory&action=stock&id=X)
+ *   - Product detail analytics (?page=inventory&action=detail&id=X)
  * -----------------------------------------------------------------------------
  * Rules:
  *   - require_login() enforced
+ *   - All reads & writes strictly scoped to current_user_id()
+ *   - 404 rendered for any ID that does not belong to the logged-in user
  *   - Zero JavaScript
  *   - Prepared statements only via model
  *   - CSRF protection on every POST submission
  *   - htmlspecialchars on all output via e()
  *   - Money formatted as ৳ with 2 decimals
  *   - Non-negative validation for prices and stock
- *   - Product name uniqueness validated
+ *   - Product name uniqueness validated per user
  * -----------------------------------------------------------------------------
  */
 
@@ -61,10 +64,24 @@ class ProductController
     }
 
     /**
-     * List products — with optional GET filters and pagination.
+     * Render the styled 404 view if a resource does not belong to the user.
+     */
+    private function render404(): void
+    {
+        http_response_code(404);
+        $activePage = '404';
+        $pageTitle  = t('page_not_found');
+        require __DIR__ . '/../views/404.php';
+        exit;
+    }
+
+    /**
+     * List products — with optional GET filters and pagination, scoped to user.
      */
     public function index(): void
     {
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+
         // --- Collect filter values -------------------------------------------
         $filters = [
             'name'     => trim(strip_tags($_GET['name']     ?? '')),
@@ -74,13 +91,13 @@ class ProductController
 
         $page = max(1, (int) ($_GET['p'] ?? 1));
 
-        $result = Product::paginate($filters, $page, 20);
+        $result = Product::paginate($userId, $filters, $page, 20);
 
         $products   = $result['items'];
         $pagination = $result;
 
-        // Category list for the filter dropdown
-        $allCategories = Product::allCategories();
+        // Category list for the filter dropdown scoped to current user
+        $allCategories = Product::allCategories($userId);
 
         $pageTitle  = t('product_title');
         $activePage = 'inventory';
@@ -95,18 +112,18 @@ class ProductController
      */
     public function detail(): void
     {
-        $id = (int)($_GET['id'] ?? 0);
-        $product = Product::findById($id);
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+        $id     = (int)($_GET['id'] ?? 0);
+        $product = Product::findById($id, $userId);
 
+        // Return 404 if product does not exist or belongs to another user
         if (!$product) {
-            flash_set('error', t('error_product_not_found'));
-            header('Location: index.php?page=inventory');
-            exit;
+            $this->render404();
         }
 
         require_once __DIR__ . '/../helpers/sparkline.php';
 
-        $saleHistory = Product::getSaleProfitHistory($id);
+        $saleHistory = Product::getSaleProfitHistory($id, $userId);
 
         // Extract trend values: total profit per sale item
         $profitTrendPoints = [];
@@ -123,10 +140,12 @@ class ProductController
     }
 
     /**
-     * Add a new product to inventory.
+     * Add a new product to inventory scoped to current user.
      */
     public function create(): void
     {
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // CSRF Token Check
             if (!csrf_verify($_POST['csrf_token'] ?? '')) {
@@ -152,7 +171,7 @@ class ProductController
             if ($retailPrice < 0.0 || $costPrice < 0.0 || $stock < 0 || $minStock < 0) {
                 $errors[] = t('error_invalid_number');
             }
-            if ($name !== '' && Product::nameExists($name)) {
+            if ($name !== '' && Product::nameExists($name, $userId)) {
                 $errors[] = t('error_product_exists');
             }
 
@@ -164,7 +183,7 @@ class ProductController
                 exit;
             }
 
-            Product::create($name, $category, $retailPrice, $costPrice, $stock, $minStock);
+            Product::create($userId, $name, $category, $retailPrice, $costPrice, $stock, $minStock);
             flash_set('success', t('msg_product_added'));
             header('Location: index.php?page=inventory');
             exit;
@@ -179,17 +198,17 @@ class ProductController
     }
 
     /**
-     * Edit existing product information.
+     * Edit existing product information, verifying ownership.
      */
     public function edit(): void
     {
-        $id = (int)($_GET['id'] ?? 0);
-        $product = Product::findById($id);
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+        $id     = (int)($_GET['id'] ?? 0);
+        $product = Product::findById($id, $userId);
 
+        // Return 404 if product does not exist or belongs to another user
         if (!$product) {
-            flash_set('error', t('error_product_not_found'));
-            header('Location: index.php?page=inventory');
-            exit;
+            $this->render404();
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -217,7 +236,7 @@ class ProductController
             if ($retailPrice < 0.0 || $costPrice < 0.0 || $stock < 0 || $minStock < 0) {
                 $errors[] = t('error_invalid_number');
             }
-            if ($name !== '' && Product::nameExists($name, $id)) {
+            if ($name !== '' && Product::nameExists($name, $userId, $id)) {
                 $errors[] = t('error_product_exists');
             }
 
@@ -229,7 +248,7 @@ class ProductController
                 exit;
             }
 
-            Product::update($id, $name, $category, $retailPrice, $costPrice, $stock, $minStock);
+            Product::update($id, $userId, $name, $category, $retailPrice, $costPrice, $stock, $minStock);
             flash_set('success', t('msg_product_updated'));
             header('Location: index.php?page=inventory');
             exit;
@@ -248,13 +267,13 @@ class ProductController
      */
     public function stock(): void
     {
-        $id = (int)($_GET['id'] ?? 0);
-        $product = Product::findById($id);
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+        $id     = (int)($_GET['id'] ?? 0);
+        $product = Product::findById($id, $userId);
 
+        // Return 404 if product does not exist or belongs to another user
         if (!$product) {
-            flash_set('error', t('error_product_not_found'));
-            header('Location: index.php?page=inventory');
-            exit;
+            $this->render404();
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -264,7 +283,7 @@ class ProductController
                 exit;
             }
 
-            $action = trim($_POST['stock_action'] ?? 'set');
+            $action   = trim($_POST['stock_action'] ?? 'set');
             $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : -1;
 
             if ($quantity < 0) {
@@ -282,7 +301,7 @@ class ProductController
                 $newStock = $quantity;
             }
 
-            Product::updateStock($id, $newStock);
+            Product::updateStock($id, $userId, $newStock);
             flash_set('success', t('msg_stock_updated'));
             header('Location: index.php?page=inventory');
             exit;

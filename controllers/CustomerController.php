@@ -59,6 +59,8 @@ class CustomerController
             'create'        => $this->create(),
             'edit'          => $this->edit(),
             'profile'       => $this->profile(),
+            'history'       => $this->history(),
+            'receipt'       => $this->receipt(),
             'deleteConfirm' => $this->deleteConfirm(),
             'delete'        => $this->delete(),
             default         => $this->index(),
@@ -232,6 +234,58 @@ class CustomerController
 
         require __DIR__ . '/../views/layout/header.php';
         require __DIR__ . '/../views/customers/profile.php';
+        require __DIR__ . '/../views/layout/footer.php';
+    }
+
+    // =========================================================================
+    // history() — customer transaction history with running balance
+    // =========================================================================
+    public function history(): void
+    {
+        $id       = (int)($_GET['id'] ?? 0);
+        $customer = Customer::findById($id, $this->userId);
+
+        if ($customer === null) {
+            $this->render404();
+            return;
+        }
+
+        require_once __DIR__ . '/../models/Transaction.php';
+        $transactions = Transaction::findByCustomerWithRunningBalance($id, $this->userId);
+        $pageTitle    = $customer['name'] . ' — ' . t('customer_history_title');
+        $activePage   = 'customers';
+
+        require __DIR__ . '/../views/layout/header.php';
+        require __DIR__ . '/../views/customers/history.php';
+        require __DIR__ . '/../views/layout/footer.php';
+    }
+
+    // =========================================================================
+    // receipt() — transaction receipt view
+    // =========================================================================
+    public function receipt(): void
+    {
+        $txnId = (int)($_GET['id'] ?? 0);
+        require_once __DIR__ . '/../models/Transaction.php';
+        require_once __DIR__ . '/../models/Setting.php';
+
+        $transaction = Transaction::findById($txnId, $this->userId);
+
+        if (!$transaction) {
+            $this->render404();
+            return;
+        }
+
+        $shopName    = Setting::get($this->userId, 'shop_name', 'EquityFlow Digital Khata');
+        $shopPhone   = Setting::get($this->userId, 'shop_phone', '');
+        $shopAddress = Setting::get($this->userId, 'shop_address', '');
+        $footerNote  = Setting::get($this->userId, 'invoice_footer', '');
+
+        $pageTitle  = t('receipt_title') . ' #' . $transaction['txn_id'];
+        $activePage = 'customers';
+
+        require __DIR__ . '/../views/layout/header.php';
+        require __DIR__ . '/../views/customers/receipt.php';
         require __DIR__ . '/../views/layout/footer.php';
     }
 

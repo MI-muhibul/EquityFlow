@@ -8,8 +8,9 @@ declare(strict_types=1);
  *
  * Rules:
  *   - 100% PDO prepared statements — no string interpolation in SQL queries.
+ *   - Every query is strictly scoped to `user_id`.
  *   - Non-negative validation for prices, stock, and min_stock.
- *   - Unique product name checking (supports excluding self during update).
+ *   - Unique product name checking per user (UNIQUE KEY uq_user_product_name).
  *   - Status calculation in PHP:
  *       • stock = 0           => 'out_of_stock' (Out of Stock)
  *       • stock <= min_stock  => 'low_stock'    (Low Stock)
@@ -67,7 +68,6 @@ class Product
         $isLoss = ($retailPrice < $costPrice);
 
         // Margin calculation: (Profit / Retail Price) * 100
-        // When retailPrice <= 0, default margin to 0.0%
         if ($retailPrice > 0.0) {
             $margin = round(($profit / $retailPrice) * 100.0, 2);
         } else {
@@ -82,39 +82,41 @@ class Product
     }
 
     // =========================================================================
-    // paginate() — filtered list with 20-per-page pagination
+    // paginate() — filtered list with 20-per-page pagination scoped to user
     // =========================================================================
     /**
-     * Return a page of products matching optional filters.
+     * Return a page of products matching optional filters, scoped to the user.
      *
      * Filters accepted (all optional):
      *   'name'     – partial match on products.name
-     *   'category' – exact match on products.category (dropdown selection)
+     *   'category' – exact match on products.category
      *   'status'   – 'in_stock' | 'low_stock' | 'out_of_stock'
      *
-     * Note: stock-status filtering is done in SQL so COUNT is accurate.
-     *
-     * Returns array{items, total, page, per_page, total_pages}
+     * @param int   $userId
+     * @param array $filters
+     * @param int   $page
+     * @param int   $perPage
+     * @return array{items: array, total: int, page: int, per_page: int, total_pages: int}
      */
-    public static function paginate(array $filters = [], int $page = 1, int $perPage = 20): array
+    public static function paginate(int $userId, array $filters = [], int $page = 1, int $perPage = 20): array
     {
         $pdo    = Database::getConnection();
         $page   = max(1, $page);
         $offset = ($page - 1) * $perPage;
 
-        $where  = [];
-        $params = [];
+        $where  = ['user_id = :uid'];
+        $params = [':uid' => $userId];
 
         $name     = trim($filters['name']     ?? '');
         $category = trim($filters['category'] ?? '');
         $status   = trim($filters['status']   ?? '');
 
         if ($name !== '') {
-            $where[]        = 'name LIKE :name';
+            $where[]         = 'name LIKE :name';
             $params[':name'] = '%' . $name . '%';
         }
         if ($category !== '') {
-            $where[]            = 'category = :category';
+            $where[]             = 'category = :category';
             $params[':category'] = $category;
         }
         // Map stock-status filter to SQL expression
@@ -126,14 +128,14 @@ class Product
             $where[] = 'stock > min_stock';
         }
 
-        $whereSQL = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
-        // COUNT
+        // COUNT scoped to user_id
         $countStmt = $pdo->prepare("SELECT COUNT(*) FROM products {$whereSQL}");
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
-        // Page rows
+        // Page rows scoped to user_id
         $listStmt = $pdo->prepare(
             "SELECT * FROM products {$whereSQL}
              ORDER BY category ASC, name ASC
@@ -159,27 +161,30 @@ class Product
     }
 
     /**
-     * Fetch all distinct product categories for the filter dropdown.
+     * Fetch all distinct product categories for the user's inventory.
      *
+     * @param int $userId
      * @return array<string>
      */
-    public static function allCategories(): array
+    public static function allCategories(int $userId): array
     {
         $pdo  = Database::getConnection();
-        $stmt = $pdo->query('SELECT DISTINCT category FROM products ORDER BY category ASC');
+        $stmt = $pdo->prepare('SELECT DISTINCT category FROM products WHERE user_id = :uid ORDER BY category ASC');
+        $stmt->execute([':uid' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
     /**
-     * Fetch all products ordered by category ASC, name ASC.
-     * Attaches computed status array and profit metrics to each record.
+     * Fetch all products belonging to the specified user.
      *
+     * @param int $userId
      * @return array
      */
-    public static function all(): array
+    public static function all(int $userId): array
     {
         $pdo  = Database::getConnection();
-        $stmt = $pdo->query('SELECT * FROM products ORDER BY category ASC, name ASC');
+        $stmt = $pdo->prepare('SELECT * FROM products WHERE user_id = :uid ORDER BY category ASC, name ASC');
+        $stmt->execute([':uid' => $userId]);
         $rows = $stmt->fetchAll();
 
         foreach ($rows as &$row) {
@@ -192,16 +197,18 @@ class Product
     }
 
     /**
-     * Find a single product by primary key prod_id.
+     * Find a single product by primary key prod_id and user_id.
+     * Returns false if the product does not exist or belongs to another user.
      *
      * @param int $prodId
+     * @param int $userId
      * @return array|false
      */
-    public static function findById(int $prodId): array|false
+    public static function findById(int $prodId, int $userId): array|false
     {
         $pdo  = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT * FROM products WHERE prod_id = :id LIMIT 1');
-        $stmt->execute([':id' => $prodId]);
+        $stmt = $pdo->prepare('SELECT * FROM products WHERE prod_id = :id AND user_id = :uid LIMIT 1');
+        $stmt->execute([':id' => $prodId, ':uid' => $userId]);
         $row = $stmt->fetch();
 
         if ($row) {
@@ -213,32 +220,24 @@ class Product
     }
 
     /**
-     * Fetch profit history from sale_items data for this product, ordered chronologically.
-     * Computes profit = (unit_price - unit_cost) * qty for each sale item.
+     * Fetch profit history from sale_items for this product, verified against user_id.
      *
      * @param int $prodId
-     * @return array<int, array{
-     *     item_id: int,
-     *     txn_id: int,
-     *     qty: float,
-     *     unit_price: float,
-     *     unit_cost: float,
-     *     unit_profit: float,
-     *     total_profit: float,
-     *     created_at: string
-     * }>
+     * @param int $userId
+     * @return array
      */
-    public static function getSaleProfitHistory(int $prodId): array
+    public static function getSaleProfitHistory(int $prodId, int $userId): array
     {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             'SELECT s.item_id, s.txn_id, s.qty, s.unit_price, s.unit_cost, t.created_at
              FROM sale_items s
              JOIN transactions t ON s.txn_id = t.txn_id
-             WHERE s.prod_id = :prod_id
+             JOIN products p ON s.prod_id = p.prod_id
+             WHERE s.prod_id = :prod_id AND p.user_id = :uid
              ORDER BY t.created_at ASC, s.item_id ASC'
         );
-        $stmt->execute([':prod_id' => $prodId]);
+        $stmt->execute([':prod_id' => $prodId, ':uid' => $userId]);
         $rows = $stmt->fetchAll();
 
         $history = [];
@@ -265,20 +264,22 @@ class Product
     }
 
     /**
-     * Check whether a product name is already taken.
-     * $excludeId is ignored when adding, or set to current prod_id when editing.
+     * Check whether a product name is already taken for the given user.
      *
      * @param string $name
+     * @param int $userId
      * @param int $excludeId
-     * @return bool True if name exists on a different record
+     * @return bool True if name exists on a different record for this user
      */
-    public static function nameExists(string $name, int $excludeId = 0): bool
+    public static function nameExists(string $name, int $userId, int $excludeId = 0): bool
     {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
-            'SELECT COUNT(*) FROM products WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) AND prod_id != :exclude'
+            'SELECT COUNT(*) FROM products
+             WHERE user_id = :uid AND LOWER(TRIM(name)) = LOWER(TRIM(:name)) AND prod_id != :exclude'
         );
         $stmt->execute([
+            ':uid'     => $userId,
             ':name'    => $name,
             ':exclude' => $excludeId,
         ]);
@@ -287,8 +288,9 @@ class Product
     }
 
     /**
-     * Insert a new product into inventory.
+     * Insert a new product into inventory with user_id.
      *
+     * @param int $userId
      * @param string $name
      * @param string $category
      * @param float $retailPrice
@@ -298,6 +300,7 @@ class Product
      * @return int Inserted prod_id
      */
     public static function create(
+        int    $userId,
         string $name,
         string $category,
         float  $retailPrice,
@@ -306,10 +309,11 @@ class Product
         int    $minStock
     ): int {
         $pdo = Database::getConnection();
-        $sql = 'INSERT INTO products (name, category, retail_price, cost_price, stock, min_stock, created_at)
-                VALUES (:name, :category, :retail_price, :cost_price, :stock, :min_stock, NOW())';
+        $sql = 'INSERT INTO products (user_id, name, category, retail_price, cost_price, stock, min_stock, created_at)
+                VALUES (:uid, :name, :category, :retail_price, :cost_price, :stock, :min_stock, NOW())';
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
+            ':uid'          => $userId,
             ':name'         => trim($name),
             ':category'     => trim($category),
             ':retail_price' => $retailPrice,
@@ -322,9 +326,10 @@ class Product
     }
 
     /**
-     * Update an existing product's details.
+     * Update an existing product's details, scoped to user_id.
      *
      * @param int $prodId
+     * @param int $userId
      * @param string $name
      * @param string $category
      * @param float $retailPrice
@@ -335,6 +340,7 @@ class Product
      */
     public static function update(
         int    $prodId,
+        int    $userId,
         string $name,
         string $category,
         float  $retailPrice,
@@ -350,7 +356,7 @@ class Product
                     cost_price = :cost_price,
                     stock = :stock,
                     min_stock = :min_stock
-                WHERE prod_id = :id';
+                WHERE prod_id = :id AND user_id = :uid';
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':name'         => trim($name),
@@ -360,23 +366,26 @@ class Product
             ':stock'        => $stock,
             ':min_stock'    => $minStock,
             ':id'           => $prodId,
+            ':uid'          => $userId,
         ]);
     }
 
     /**
-     * Update only the stock quantity for a product.
+     * Update only the stock quantity for a product, scoped to user_id.
      *
      * @param int $prodId
+     * @param int $userId
      * @param int $newStock
      * @return void
      */
-    public static function updateStock(int $prodId, int $newStock): void
+    public static function updateStock(int $prodId, int $userId, int $newStock): void
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('UPDATE products SET stock = :stock WHERE prod_id = :id');
+        $stmt = $pdo->prepare('UPDATE products SET stock = :stock WHERE prod_id = :id AND user_id = :uid');
         $stmt->execute([
             ':stock' => max(0, $newStock),
             ':id'    => $prodId,
+            ':uid'   => $userId,
         ]);
     }
 }

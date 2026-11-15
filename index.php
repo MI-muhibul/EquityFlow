@@ -10,11 +10,17 @@ declare(strict_types=1);
  * the appropriate controller or renders a 404 error fallback.
  */
 
-// Initialize secure session with hardened cookie parameters and timeout check
+// 1. Load .env file first — credentials must be available before anything else
+require_once __DIR__ . '/config/env.php';
+
+// 2. Load all PHP constants from .env values (DB, Google OAuth, session config)
+require_once __DIR__ . '/config/constants.php';
+
+// 3. Initialize secure session with hardened cookie parameters and timeout check
 require_once __DIR__ . '/config/session.php';
 init_secure_session();
 
-// Initialize bilingual language engine
+// 4. Initialize bilingual language engine
 require_once __DIR__ . '/config/lang.php';
 
 // Handle explicit language switch request (?lang=bn or ?lang=en)
@@ -195,12 +201,14 @@ function renderErrorView(int $statusCode, string $title, string $message, string
 // -----------------------------------------------------------------------------
 // Whitelist Verification
 // -----------------------------------------------------------------------------
-    // Fallback: render styled 404 page
+if (!array_key_exists($requestedPage, $routeWhitelist)) {
+    http_response_code(404);
     $activePage = '404';
     $pageTitle = t('page_not_found');
     $errorMsg = t('page_not_found_desc');
     require __DIR__ . '/views/404.php';
     exit;
+}
 
 // -----------------------------------------------------------------------------
 // Controller File Resolution & Dispatch

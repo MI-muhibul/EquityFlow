@@ -6,16 +6,19 @@ declare(strict_types=1);
  * -----------------------------------------------------------------------------
  * Controller handling:
  *   - Listing recent transactions (?page=transactions)
- *   - Showing form to record credit sale (with 5 product rows) or payment
+ *   - Showing form to record credit sale (with itemized products) or payment
  *   - Processing POST submissions with CSRF verification and PDO atomic transactions
  * -----------------------------------------------------------------------------
  * Rules:
  *   - require_login() enforced
+ *   - Strictly scoped to current_user_id()
+ *   - Return 404 page for any cust_id or prod_id belonging to another user
  *   - Zero JavaScript
- *   - Prepared statements only
+ *   - Prepared statements only via models
  *   - All output escaped with e()
  *   - Formatted money with ৳ and 2 decimals
  *   - Language strings loaded from lang files via t()
+ * -----------------------------------------------------------------------------
  */
 
 require_once __DIR__ . '/../config/constants.php';
@@ -49,27 +52,51 @@ class TransactionController
     }
 
     /**
-     * List transactions — with optional GET filters and pagination.
+     * Render the styled 404 view if a customer or product does not belong to the user.
+     */
+    private function render404(): void
+    {
+        http_response_code(404);
+        $activePage = '404';
+        $pageTitle  = t('page_not_found');
+        require __DIR__ . '/../views/404.php';
+        exit;
+    }
+
+    /**
+     * List transactions — with optional GET filters and pagination, scoped to user.
      */
     public function index(): void
     {
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+
         // --- Collect filter values -------------------------------------------
+        $custIdFilter = (int) ($_GET['cust_id'] ?? 0);
+
+        // If filtering by specific customer, verify customer belongs to this user
+        if ($custIdFilter > 0) {
+            $checkCustomer = Customer::findById($custIdFilter, $userId);
+            if (!$checkCustomer) {
+                $this->render404();
+            }
+        }
+
         $filters = [
             'start_date' => trim(strip_tags($_GET['start_date'] ?? '')),
             'end_date'   => trim(strip_tags($_GET['end_date']   ?? '')),
-            'cust_id'    => (int) ($_GET['cust_id'] ?? 0),
+            'cust_id'    => $custIdFilter,
             'type'       => trim(strip_tags($_GET['type'] ?? '')),
         ];
 
         $page = max(1, (int) ($_GET['p'] ?? 1));
 
-        $result = Transaction::paginate($filters, $page, 20);
+        $result = Transaction::paginate($userId, $filters, $page, 20);
 
         $transactions = $result['items'];
         $pagination   = $result;
 
-        // Customer dropdown list for the filter form
-        $allCustomers = Customer::all();
+        // Customer dropdown list for the filter form, scoped to user
+        $allCustomers = Customer::all($userId);
 
         $pageTitle  = t('nav_transactions');
         $activePage = 'transactions';
@@ -84,6 +111,8 @@ class TransactionController
      */
     public function create(): void
     {
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // CSRF Verification
             $token = $_POST['csrf_token'] ?? '';
@@ -98,15 +127,25 @@ class TransactionController
             $type   = isset($_POST['type']) && is_string($_POST['type']) ? trim($_POST['type']) : '';
             $directAmount = isset($_POST['amount']) ? (float)$_POST['amount'] : 0.0;
             $note   = isset($_POST['note']) && is_string($_POST['note']) ? trim($_POST['note']) : null;
-            $ownerId = current_user_id() ?? 1;
 
-            // Extract items if submitted for credit sale
+            // Verify customer belongs to the logged-in user; return 404 if not
+            $customer = Customer::findById($custId, $userId);
+            if (!$customer) {
+                $this->render404();
+            }
+
+            // Extract and verify items if submitted for credit sale
             $items = [];
             if ($type === 'credit' && isset($_POST['items']) && is_array($_POST['items'])) {
                 foreach ($_POST['items'] as $row) {
                     $prodId = isset($row['prod_id']) ? (int)$row['prod_id'] : 0;
                     $qty    = isset($row['qty']) ? (float)$row['qty'] : 0.0;
                     if ($prodId > 0 && $qty > 0.0) {
+                        // Verify product belongs to this user; return 404 if from another user
+                        $product = Product::findById($prodId, $userId);
+                        if (!$product) {
+                            $this->render404();
+                        }
                         $items[] = [
                             'prod_id' => $prodId,
                             'qty'     => $qty,
@@ -115,10 +154,14 @@ class TransactionController
                 }
             }
 
-            // Execute transactional recording in model
-            $result = Transaction::record($custId, $ownerId, $directAmount, $type, $note, $items);
+            // Execute transactional recording in model scoped to userId
+            $result = Transaction::record($custId, $userId, $directAmount, $type, $note, $items);
 
             if (!$result['success']) {
+                if ($result['error_key'] === 'error_customer_not_found' || $result['error_key'] === 'error_product_not_found') {
+                    $this->render404();
+                }
+
                 $errorMsg = t($result['error_key'] ?? 'error_db_error');
 
                 // Replace placeholders if any
@@ -129,7 +172,6 @@ class TransactionController
                 }
 
                 flash_set('error', $errorMsg);
-                // Retain selected customer in query string if provided
                 header('Location: index.php?page=transactions&action=create' . ($custId > 0 ? '&cust_id=' . $custId : ''));
                 exit;
             }
@@ -139,12 +181,19 @@ class TransactionController
             exit;
         }
 
-        // GET request: show form with customer and product lists
-        $customers       = Customer::all();
-        $products        = Product::all();
+        // GET request: show form with customer and product lists scoped to this user
         $preselectCustId = isset($_GET['cust_id']) ? (int)$_GET['cust_id'] : 0;
-        $pageTitle       = t('txn_new_title');
-        $activePage      = 'transactions';
+        if ($preselectCustId > 0) {
+            $customer = Customer::findById($preselectCustId, $userId);
+            if (!$customer) {
+                $this->render404();
+            }
+        }
+
+        $customers  = Customer::all($userId);
+        $products   = Product::all($userId);
+        $pageTitle  = t('txn_new_title');
+        $activePage = 'transactions';
 
         require __DIR__ . '/../views/layout/header.php';
         require __DIR__ . '/../views/transactions/create.php';

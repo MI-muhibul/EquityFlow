@@ -7,22 +7,24 @@ declare(strict_types=1);
  * Model handling Khata transactions (credit sale / payment).
  *
  * Rules:
+ *   - Strictly scoped to the logged-in shop owner (user_id).
  *   - Uses PDO beginTransaction(), commit(), rollBack().
- *   - Runs SELECT ... FOR UPDATE on customers row to lock and fetch fresh state.
+ *   - Runs SELECT ... FOR UPDATE on customers row joined/filtered by user_id.
  *   - If products are provided for a credit sale:
- *       • SELECT prod_id, name, retail_price, cost_price, stock FROM products FOR UPDATE
+ *       • SELECT prod_id, name, retail_price, cost_price, stock FROM products
+ *         WHERE prod_id = :id AND user_id = :uid FOR UPDATE
  *       • Rejects if requested quantity > available stock.
- *       • Deducts stock: UPDATE products SET stock = stock - qty.
+ *       • Deducts stock: UPDATE products SET stock = stock - qty WHERE prod_id = :id AND user_id = :uid
  *       • Computes total transaction amount = sum(qty * retail_price).
  *       • Inserts line items into `sale_items`.
  *   - Validates:
  *       1. amount > 0
  *       2. type is either 'credit' or 'payment'
- *       3. customer must exist
+ *       3. customer must exist and belong to user_id
  *       4. credit sale rejected if (balance + amount) > credit_limit
  *       5. payment rejected if amount > current balance
  *   - Inserts row into `transactions`.
- *   - Updates `customers.balance` (+ amount for credit, - amount for payment).
+ *   - Updates `customers.balance` scoped to user_id.
  *   - Inserts audit trail row into `ledger_entries` (owner_id = user_id, txn_id).
  *   - All SQL uses PDO prepared statements.
  * -----------------------------------------------------------------------------
@@ -37,7 +39,7 @@ class Transaction
      * Supports optional itemized product sales for credit transactions.
      *
      * @param int $custId
-     * @param int $ownerId (user_id recording the transaction)
+     * @param int $userId (user_id recording the transaction and owning the customer & products)
      * @param float $directAmount Direct amount entered (ignored if items are provided)
      * @param string $type ('credit' or 'payment')
      * @param string|null $note
@@ -47,7 +49,7 @@ class Transaction
      */
     public static function record(
         int $custId,
-        int $ownerId,
+        int $userId,
         float $directAmount,
         string $type,
         ?string $note = null,
@@ -70,9 +72,11 @@ class Transaction
             // Begin transactional boundary
             $pdo->beginTransaction();
 
-            // 1. Lock and validate customer record for atomic update
-            $stmtCust = $pdo->prepare('SELECT cust_id, balance, credit_limit FROM customers WHERE cust_id = :id FOR UPDATE');
-            $stmtCust->execute([':id' => $custId]);
+            // 1. Lock and validate customer record for atomic update, strictly scoped to user_id
+            $stmtCust = $pdo->prepare(
+                'SELECT cust_id, balance, credit_limit FROM customers WHERE cust_id = :id AND user_id = :uid FOR UPDATE'
+            );
+            $stmtCust->execute([':id' => $custId, ':uid' => $userId]);
             $customer = $stmtCust->fetch();
 
             if (!$customer) {
@@ -93,9 +97,13 @@ class Transaction
             $computedAmount = 0.0;
 
             if ($type === 'credit' && !empty($items)) {
-                // Prepare product lock statement
-                $stmtProd = $pdo->prepare('SELECT prod_id, name, retail_price, cost_price, stock FROM products WHERE prod_id = :id FOR UPDATE');
-                $stmtStockReduce = $pdo->prepare('UPDATE products SET stock = stock - :qty WHERE prod_id = :id');
+                // Prepare product lock statement scoped to user_id
+                $stmtProd = $pdo->prepare(
+                    'SELECT prod_id, name, retail_price, cost_price, stock FROM products WHERE prod_id = :id AND user_id = :uid FOR UPDATE'
+                );
+                $stmtStockReduce = $pdo->prepare(
+                    'UPDATE products SET stock = stock - :qty WHERE prod_id = :id AND user_id = :uid'
+                );
 
                 foreach ($items as $item) {
                     $prodId = (int)($item['prod_id'] ?? 0);
@@ -106,9 +114,10 @@ class Transaction
                         continue;
                     }
 
-                    $stmtProd->execute([':id' => $prodId]);
+                    $stmtProd->execute([':id' => $prodId, ':uid' => $userId]);
                     $product = $stmtProd->fetch();
 
+                    // If product does not exist or does not belong to user_id, fail
                     if (!$product) {
                         $pdo->rollBack();
                         return [
@@ -146,6 +155,7 @@ class Transaction
                     $stmtStockReduce->execute([
                         ':qty' => (int)$qty,
                         ':id'  => $prodId,
+                        ':uid' => $userId,
                     ]);
 
                     $processedItems[] = [
@@ -157,9 +167,7 @@ class Transaction
                 }
             }
 
-            // Determine final transaction amount:
-            // Use computed amount from products if any products were validly selected,
-            // otherwise use direct amount.
+            // Determine final transaction amount
             $finalAmount = !empty($processedItems) ? round($computedAmount, 2) : round($directAmount, 2);
 
             // Rule: amount > 0
@@ -178,7 +186,7 @@ class Transaction
                 $newBalance = round($currentBalance + $finalAmount, 2);
 
                 // Rule: credit sale rejected if new balance would exceed credit_limit
-                if ($newBalance > $creditLimit) {
+                if ($creditLimit > 0.0 && $newBalance > $creditLimit) {
                     $pdo->rollBack();
                     return [
                         'success'     => false,
@@ -232,12 +240,13 @@ class Transaction
                 }
             }
 
-            // 6. Update customer balance
-            $sqlUpd = 'UPDATE customers SET balance = :new_balance WHERE cust_id = :id';
+            // 6. Update customer balance (scoped to user_id)
+            $sqlUpd = 'UPDATE customers SET balance = :new_balance WHERE cust_id = :id AND user_id = :uid';
             $stmtUpd = $pdo->prepare($sqlUpd);
             $stmtUpd->execute([
                 ':new_balance' => $newBalance,
                 ':id'          => $custId,
+                ':uid'         => $userId,
             ]);
 
             // 7. Insert audit ledger_entries row
@@ -245,7 +254,7 @@ class Transaction
                           VALUES (:owner_id, :txn_id, NOW())';
             $stmtLedger = $pdo->prepare($sqlLedger);
             $stmtLedger->execute([
-                ':owner_id' => $ownerId,
+                ':owner_id' => $userId,
                 ':txn_id'   => $txnId,
             ]);
 
@@ -280,27 +289,25 @@ class Transaction
     }
 
     // =========================================================================
-    // paginate() — filtered list with 20-per-page pagination
+    // paginate() — filtered list with 20-per-page pagination, scoped to user
     // =========================================================================
     /**
-     * Return a page of transactions matching optional filters.
+     * Return a page of transactions matching optional filters, scoped to user_id.
      *
-     * Filters accepted (all optional):
-     *   'start_date' – YYYY-MM-DD, lower bound on created_at (uses idx_transactions_created_at)
-     *   'end_date'   – YYYY-MM-DD, upper bound on created_at
-     *   'cust_id'    – integer, exact match on cust_id  (uses idx_transactions_cust_id)
-     *   'type'       – 'credit' or 'payment'
-     *
-     * Returns array{items, total, page, per_page, total_pages}
+     * @param int   $userId
+     * @param array $filters
+     * @param int   $page
+     * @param int   $perPage
+     * @return array{items: array, total: int, page: int, per_page: int, total_pages: int}
      */
-    public static function paginate(array $filters = [], int $page = 1, int $perPage = 20): array
+    public static function paginate(int $userId, array $filters = [], int $page = 1, int $perPage = 20): array
     {
         $pdo    = Database::getConnection();
         $page   = max(1, $page);
         $offset = ($page - 1) * $perPage;
 
-        $where  = [];
-        $params = [];
+        $where  = ['c.user_id = :uid'];
+        $params = [':uid' => $userId];
 
         $startDate = trim($filters['start_date'] ?? '');
         $endDate   = trim($filters['end_date']   ?? '');
@@ -309,12 +316,10 @@ class Transaction
 
         if ($startDate !== '') {
             $where[]              = 't.created_at >= :start_date';
-            // Include entire start day
             $params[':start_date'] = $startDate . ' 00:00:00';
         }
         if ($endDate !== '') {
             $where[]             = 't.created_at <= :end_date';
-            // Include entire end day
             $params[':end_date'] = $endDate . ' 23:59:59';
         }
         if ($custId > 0) {
@@ -326,16 +331,18 @@ class Transaction
             $params[':type'] = $type;
         }
 
-        $whereSQL = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
-        // COUNT
+        // COUNT scoped through customers.user_id
         $countStmt = $pdo->prepare(
-            "SELECT COUNT(*) FROM transactions t {$whereSQL}"
+            "SELECT COUNT(*) FROM transactions t
+             JOIN customers c ON t.cust_id = c.cust_id
+             {$whereSQL}"
         );
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
-        // Page of rows — JOIN customers for display
+        // Page of rows — JOIN customers for display, scoped to user_id
         $listStmt = $pdo->prepare(
             "SELECT t.*, c.name AS customer_name, c.phone AS customer_phone
              FROM transactions t
@@ -357,41 +364,49 @@ class Transaction
     }
 
     /**
-     * Get recent transactions with customer details.
+     * Get recent transactions with customer details scoped to user_id.
      *
+     * @param int $userId
      * @param int $limit
      * @return array
      */
-    public static function all(int $limit = 50): array
+    public static function all(int $userId, int $limit = 50): array
     {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             'SELECT t.*, c.name AS customer_name, c.phone AS customer_phone
              FROM transactions t
              JOIN customers c ON t.cust_id = c.cust_id
+             WHERE c.user_id = :uid
              ORDER BY t.txn_id DESC
              LIMIT :limit'
         );
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();
     }
 
     /**
-     * Get transactions for a specific customer with running balance computed.
+     * Get transactions for a specific customer with running balance computed,
+     * verifying that the customer belongs to the user.
      * Returned newest first.
      *
      * @param int $custId
+     * @param int $userId
      * @return array
      */
-    public static function findByCustomerWithRunningBalance(int $custId): array
+    public static function findByCustomerWithRunningBalance(int $custId, int $userId): array
     {
         $pdo = Database::getConnection();
-        // Fetch oldest first to compute running balance from the start
         $stmt = $pdo->prepare(
-            'SELECT * FROM transactions WHERE cust_id = :id ORDER BY txn_id ASC'
+            'SELECT t.*
+             FROM transactions t
+             JOIN customers c ON t.cust_id = c.cust_id
+             WHERE t.cust_id = :id AND c.user_id = :uid
+             ORDER BY t.txn_id ASC'
         );
-        $stmt->execute([':id' => $custId]);
+        $stmt->execute([':id' => $custId, ':uid' => $userId]);
         $rows = $stmt->fetchAll();
 
         $running = 0.0;
@@ -411,38 +426,40 @@ class Transaction
     }
 
     /**
-     * Find a single transaction by primary ID with customer info and balance after.
+     * Find a single transaction by primary ID, scoped to user_id via customers.
      *
      * @param int $txnId
+     * @param int $userId
      * @return array|false
      */
-    public static function findById(int $txnId): array|false
+    public static function findById(int $txnId, int $userId): array|false
     {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             'SELECT t.*, c.name AS customer_name, c.phone AS customer_phone, c.address AS customer_address, c.balance, c.credit_limit
              FROM transactions t
              JOIN customers c ON t.cust_id = c.cust_id
-             WHERE t.txn_id = :id
+             WHERE t.txn_id = :id AND c.user_id = :uid
              LIMIT 1'
         );
-        $stmt->execute([':id' => $txnId]);
+        $stmt->execute([':id' => $txnId, ':uid' => $userId]);
         $txn = $stmt->fetch();
 
         if (!$txn) {
             return false;
         }
 
-        // Calculate balance after this transaction occurred:
-        // Sum of all credits up to this txn_id minus sum of all payments up to this txn_id
+        // Calculate balance after this transaction occurred
         $stmtBal = $pdo->prepare(
             "SELECT 
-                COALESCE(SUM(CASE WHEN type = 'credit' THEN amount ELSE -amount END), 0.00) AS balance_after
-             FROM transactions 
-             WHERE cust_id = :cust_id AND txn_id <= :txn_id"
+                COALESCE(SUM(CASE WHEN t2.type = 'credit' THEN t2.amount ELSE -t2.amount END), 0.00) AS balance_after
+             FROM transactions t2
+             JOIN customers c ON t2.cust_id = c.cust_id
+             WHERE t2.cust_id = :cust_id AND c.user_id = :uid AND t2.txn_id <= :txn_id"
         );
         $stmtBal->execute([
             ':cust_id' => $txn['cust_id'],
+            ':uid'     => $userId,
             ':txn_id'  => $txn['txn_id'],
         ]);
         $txn['balance_after'] = (float)$stmtBal->fetchColumn();

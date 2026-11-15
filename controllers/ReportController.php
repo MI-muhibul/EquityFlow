@@ -5,14 +5,15 @@ declare(strict_types=1);
  * controllers/ReportController.php
  * -----------------------------------------------------------------------------
  * Controller handling shop analytics and financial reports:
- *   - Monthly summary calculation & breakdown
+ *   - Monthly summary calculation & breakdown scoped to current_user_id()
  *   - Month/Year selector via GET parameters
- *   - Automatic saving to `reports` table
+ *   - Automatic saving to `reports` table with user_id
  *   - Outstanding customer balances list sorted DESC
  *   - Zero JavaScript SVG comparison bar chart
  * -----------------------------------------------------------------------------
  * Rules:
  *   - require_login() enforced
+ *   - All reads & writes strictly scoped to current_user_id()
  *   - Zero JavaScript
  *   - Prepared statements only via models
  *   - htmlspecialchars on all output via e()
@@ -47,10 +48,12 @@ class ReportController
     }
 
     /**
-     * Display Monthly Report & Outstanding Balance List.
+     * Display Monthly Report & Outstanding Balance List for the authenticated user.
      */
     public function index(): void
     {
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+
         // 1. Resolve selected Year and Month from GET params (defaults to current)
         $currentYear  = (int) date('Y');
         $currentMonth = (int) date('n');
@@ -66,17 +69,17 @@ class ReportController
             $selectedMonth = $currentMonth;
         }
 
-        // 2. Fetch monthly aggregated summary & save snapshot
-        $summary = Report::getMonthlySummary($selectedYear, $selectedMonth);
+        // 2. Fetch monthly aggregated summary & save snapshot scoped to userId
+        $summary = Report::getMonthlySummary($userId, $selectedYear, $selectedMonth);
 
-        // 3. Fetch outstanding customer balances list (sorted by balance DESC)
-        $outstandingCustomers = Report::getOutstandingBalances();
+        // 3. Fetch outstanding customer balances list (sorted by balance DESC) scoped to userId
+        $outstandingCustomers = Report::getOutstandingBalances($userId);
 
-        // 4. Fetch available years for selector dropdown
-        $availableYears = Report::getAvailableYears();
+        // 4. Fetch available years for selector dropdown scoped to userId
+        $availableYears = Report::getAvailableYears($userId);
 
-        // 5. Fetch past saved reports
-        $pastReports = Report::getPastReports();
+        // 5. Fetch past saved reports scoped to userId
+        $pastReports = Report::getPastReports($userId);
 
         $pageTitle  = t('report_title');
         $activePage = 'reports';

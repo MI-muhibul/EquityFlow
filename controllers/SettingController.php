@@ -15,6 +15,7 @@ declare(strict_types=1);
  * -----------------------------------------------------------------------------
  * Rules:
  *   - require_login() enforced
+ *   - All settings scoped to current_user_id() via (user_id, skey) primary key
  *   - CSRF protection on POST actions
  *   - Zero JavaScript
  *   - Prepared statements only via models
@@ -59,11 +60,24 @@ class SettingController
     }
 
     /**
-     * Display Settings page and Backups list.
+     * Render the styled 404 view for unmatched files or resources.
+     */
+    private function render404(): void
+    {
+        http_response_code(404);
+        $activePage = '404';
+        $pageTitle  = t('page_not_found');
+        require __DIR__ . '/../views/404.php';
+        exit;
+    }
+
+    /**
+     * Display Settings page and Backups list for the authenticated user.
      */
     public function index(): void
     {
-        $settings = Setting::all();
+        $userId   = current_user_id() ?? (int)$_SESSION['user_id'];
+        $settings = Setting::all($userId);
         $backups  = Backup::listBackups();
 
         $pageTitle  = t('settings_title');
@@ -75,10 +89,12 @@ class SettingController
     }
 
     /**
-     * Handle POST submission to update settings.
+     * Handle POST submission to update settings for the authenticated user.
      */
     public function update(): void
     {
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: index.php?page=settings');
             exit;
@@ -90,12 +106,12 @@ class SettingController
             exit;
         }
 
-        $shopName       = trim($_POST['shop_name'] ?? '');
-        $defaultCredit  = (float)($_POST['default_credit_limit'] ?? 0.0);
+        $shopName        = trim($_POST['shop_name'] ?? '');
+        $defaultCredit   = (float)($_POST['default_credit_limit'] ?? 0.0);
         $defaultMinStock = (int)($_POST['default_min_stock'] ?? 5);
-        $defaultLang    = trim($_POST['default_language'] ?? 'bn');
-        $shopPhone      = trim($_POST['shop_phone'] ?? '');
-        $shopAddress    = trim($_POST['shop_address'] ?? '');
+        $defaultLang     = trim($_POST['default_language'] ?? 'bn');
+        $shopPhone       = trim($_POST['shop_phone'] ?? '');
+        $shopAddress     = trim($_POST['shop_address'] ?? '');
 
         // Validation
         if ($shopName === '') {
@@ -123,7 +139,7 @@ class SettingController
             'shop_address'         => $shopAddress,
         ];
 
-        if (Setting::setMultiple($toSave)) {
+        if (Setting::setMultiple($userId, $toSave)) {
             // Also switch language session if owner changed default language
             if (isset($_SESSION) && empty($_GET['lang'])) {
                 $_SESSION['lang'] = $defaultLang;
@@ -173,9 +189,7 @@ class SettingController
         $path = Backup::getDownloadPath($file);
 
         if ($path === false) {
-            flash_set('error', t('page_not_found'));
-            header('Location: index.php?page=settings');
-            exit;
+            $this->render404();
         }
 
         // Send file headers for download

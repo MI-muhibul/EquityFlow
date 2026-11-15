@@ -6,28 +6,13 @@ declare(strict_types=1);
  * =============================================================================
  * Data-access layer for the `reports` table and all report aggregations.
  *
- * Public API
- * ----------
- *   Report::getMonthlySummary(int $year, int $month): array
- *       Runs all aggregation queries for a given month and returns a rich
- *       summary array. Also saves/updates snapshot records in `reports` table.
- *
- *   Report::getOutstandingBalances(): array
- *       Returns every customer with balance > 0, sorted DESC by balance,
- *       with their credit_limit and credit-utilisation percentage.
- *
- *   Report::getPastReports(): array
- *       Fetches all previously saved report rows, newest first.
- *
- *   Report::getAvailableYears(): array
- *       Returns available transaction years for selector.
- *
- * Rules
- * -----
+ * Rules:
+ *   - Strictly scoped to the logged-in shop owner (user_id).
  *   - 100% PDO prepared statements; no string interpolation on user data.
  *   - Money arithmetic uses DECIMAL; PHP rounds to 2 d.p. before display.
  *   - Profit = sum((unit_price - unit_cost) * qty) for sale_items in period.
  *   - Net change = total payments received − total credit given.
+ *   - Snapshot records in `reports` table store user_id on INSERT and DELETE.
  * =============================================================================
  */
 
@@ -36,29 +21,30 @@ require_once __DIR__ . '/../config/Database.php';
 class Report
 {
     /**
-     * Aggregate all financial metrics for the requested month and year.
-     * Saves a snapshot to `reports` table.
+     * Aggregate all financial metrics for the requested month and year scoped to user_id.
+     * Saves a snapshot to `reports` table with user_id.
      *
+     * @param int $userId
      * @param int $year  e.g. 2026
      * @param int $month 1-12
      * @return array{
      *     year:              int,
      *     month:             int,
-     *     period:            string,   // "2026-11"
-     *     period_label:      string,   // "November 2026"
-     *     total_credit:      float,    // sum of credit transactions
-     *     total_payments:    float,    // sum of payment transactions
-     *     net_change:        float,    // payments − credit (positive = net collected)
-     *     txn_count:         int,      // total number of transactions in month
+     *     period:            string,
+     *     period_label:      string,
+     *     total_credit:      float,
+     *     total_payments:    float,
+     *     net_change:        float,
+     *     txn_count:         int,
      *     credit_count:      int,
      *     payment_count:     int,
-     *     estimated_profit:  float,    // from sale_items data
-     *     total_outstanding: float,    // live: all customer balances > 0
-     *     daily_credits:     array,    // day => amount
-     *     daily_payments:    array     // day => amount
+     *     estimated_profit:  float,
+     *     total_outstanding: float,
+     *     daily_credits:     array,
+     *     daily_payments:    array
      * }
      */
-    public static function getMonthlySummary(int $year, int $month): array
+    public static function getMonthlySummary(int $userId, int $year, int $month): array
     {
         $pdo = Database::getConnection();
 
@@ -67,23 +53,24 @@ class Report
         $month = max(1, min(12, $month));
 
         // Date range for this month (inclusive)
-        $dateStart = sprintf('%04d-%02d-01 00:00:00', $year, $month);
+        $dateStart   = sprintf('%04d-%02d-01 00:00:00', $year, $month);
         $daysInMonth = (int) date('t', mktime(0, 0, 0, $month, 1, $year));
-        $dateEnd   = sprintf('%04d-%02d-%02d 23:59:59', $year, $month, $daysInMonth);
-        $periodKey = sprintf('%04d-%02d', $year, $month);
+        $dateEnd     = sprintf('%04d-%02d-%02d 23:59:59', $year, $month, $daysInMonth);
+        $periodKey   = sprintf('%04d-%02d', $year, $month);
 
-        // 1. Main transaction aggregations
+        // 1. Main transaction aggregations joined through customers.user_id
         $stmtAgg = $pdo->prepare(
             "SELECT
-                COALESCE(SUM(CASE WHEN type = 'credit'  THEN amount ELSE 0 END), 0.00) AS total_credit,
-                COALESCE(SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END), 0.00) AS total_payments,
-                COUNT(*)                                                                 AS txn_count,
-                SUM(CASE WHEN type = 'credit'  THEN 1 ELSE 0 END)                       AS credit_count,
-                SUM(CASE WHEN type = 'payment' THEN 1 ELSE 0 END)                       AS payment_count
-             FROM transactions
-             WHERE created_at BETWEEN :start AND :end"
+                COALESCE(SUM(CASE WHEN t.type = 'credit'  THEN t.amount ELSE 0 END), 0.00) AS total_credit,
+                COALESCE(SUM(CASE WHEN t.type = 'payment' THEN t.amount ELSE 0 END), 0.00) AS total_payments,
+                COUNT(*)                                                                    AS txn_count,
+                SUM(CASE WHEN t.type = 'credit'  THEN 1 ELSE 0 END)                          AS credit_count,
+                SUM(CASE WHEN t.type = 'payment' THEN 1 ELSE 0 END)                          AS payment_count
+             FROM transactions t
+             JOIN customers c ON t.cust_id = c.cust_id
+             WHERE c.user_id = :uid AND t.created_at BETWEEN :start AND :end"
         );
-        $stmtAgg->execute([':start' => $dateStart, ':end' => $dateEnd]);
+        $stmtAgg->execute([':uid' => $userId, ':start' => $dateStart, ':end' => $dateEnd]);
         $agg = $stmtAgg->fetch();
 
         $totalCredit   = round((float) ($agg['total_credit']   ?? 0), 2);
@@ -93,7 +80,7 @@ class Report
         $paymentCount  = (int) ($agg['payment_count']  ?? 0);
         $netChange     = round($totalPayments - $totalCredit, 2);
 
-        // 2. Estimated profit from sale_items
+        // 2. Estimated profit from sale_items joined through transactions and customers
         $stmtProfit = $pdo->prepare(
             "SELECT COALESCE(
                 SUM((si.unit_price - si.unit_cost) * si.qty),
@@ -101,32 +88,32 @@ class Report
              ) AS estimated_profit
              FROM sale_items si
              JOIN transactions t ON si.txn_id = t.txn_id
-             WHERE t.type = 'credit'
+             JOIN customers c ON t.cust_id = c.cust_id
+             WHERE c.user_id = :uid
+               AND t.type = 'credit'
                AND t.created_at BETWEEN :start AND :end"
         );
-        $stmtProfit->execute([':start' => $dateStart, ':end' => $dateEnd]);
+        $stmtProfit->execute([':uid' => $userId, ':start' => $dateStart, ':end' => $dateEnd]);
         $estimatedProfit = round((float) $stmtProfit->fetchColumn(), 2);
 
-        // 3. Live total outstanding across all customers
-        $totalOutstanding = round(
-            (float) $pdo->query(
-                "SELECT COALESCE(SUM(balance), 0.00) FROM customers WHERE balance > 0"
-            )->fetchColumn(),
-            2
-        );
+        // 3. Live total outstanding across current user's customers
+        $stmtOut = $pdo->prepare("SELECT COALESCE(SUM(balance), 0.00) FROM customers WHERE user_id = :uid AND balance > 0");
+        $stmtOut->execute([':uid' => $userId]);
+        $totalOutstanding = round((float) $stmtOut->fetchColumn(), 2);
 
-        // 4. Daily breakdown for charts
+        // 4. Daily breakdown for charts, scoped to user
         $stmtDaily = $pdo->prepare(
             "SELECT
-                DATE(created_at) AS day,
-                SUM(CASE WHEN type = 'credit'  THEN amount ELSE 0 END) AS daily_credit,
-                SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END) AS daily_payment
-             FROM transactions
-             WHERE created_at BETWEEN :start AND :end
-             GROUP BY DATE(created_at)
+                DATE(t.created_at) AS day,
+                SUM(CASE WHEN t.type = 'credit'  THEN t.amount ELSE 0 END) AS daily_credit,
+                SUM(CASE WHEN t.type = 'payment' THEN t.amount ELSE 0 END) AS daily_payment
+             FROM transactions t
+             JOIN customers c ON t.cust_id = c.cust_id
+             WHERE c.user_id = :uid AND t.created_at BETWEEN :start AND :end
+             GROUP BY DATE(t.created_at)
              ORDER BY day ASC"
         );
-        $stmtDaily->execute([':start' => $dateStart, ':end' => $dateEnd]);
+        $stmtDaily->execute([':uid' => $userId, ':start' => $dateStart, ':end' => $dateEnd]);
         $dailyRows = $stmtDaily->fetchAll();
 
         $dailyCredits  = [];
@@ -145,8 +132,7 @@ class Report
         ];
         $periodLabel = $monthNames[$month] . ' ' . $year;
 
-        // 6. Save snapshot into reports table
-        // Delete any existing rows for this period & type before inserting fresh snapshot
+        // 6. Save snapshot into reports table, strictly filtered and inserted with user_id
         $records = [
             ['credit',  $totalCredit],
             ['payment', $totalPayments],
@@ -154,15 +140,15 @@ class Report
             ['net',     $netChange],
         ];
 
-        $stmtDel = $pdo->prepare("DELETE FROM reports WHERE period = :period AND type = :type");
-        $stmtIns = $pdo->prepare("INSERT INTO reports (period, type, total, generated_at) VALUES (:period, :type, :total, NOW())");
+        $stmtDel = $pdo->prepare("DELETE FROM reports WHERE user_id = :uid AND period = :period AND type = :type");
+        $stmtIns = $pdo->prepare("INSERT INTO reports (user_id, period, type, total, generated_at) VALUES (:uid, :period, :type, :total, NOW())");
 
         foreach ($records as [$rtype, $rtotal]) {
             try {
-                $stmtDel->execute([':period' => $periodKey, ':type' => $rtype]);
-                $stmtIns->execute([':period' => $periodKey, ':type' => $rtype, ':total' => $rtotal]);
+                $stmtDel->execute([':uid' => $userId, ':period' => $periodKey, ':type' => $rtype]);
+                $stmtIns->execute([':uid' => $userId, ':period' => $periodKey, ':type' => $rtype, ':total' => $rtotal]);
             } catch (\Throwable $e) {
-                // Read-only reporting fallback, do not block page render
+                // Do not block page render on snapshot save failure
             }
         }
 
@@ -185,23 +171,16 @@ class Report
     }
 
     /**
-     * Return all customers with balance > 0, sorted descending by balance.
+     * Return all customers of the user with balance > 0, sorted descending by balance.
      *
-     * @return array<int, array{
-     *     cust_id:        int,
-     *     name:           string,
-     *     phone:          string,
-     *     balance:        float,
-     *     credit_limit:   float,
-     *     util_pct:       float,
-     *     last_txn_date:  string|null
-     * }>
+     * @param int $userId
+     * @return array
      */
-    public static function getOutstandingBalances(): array
+    public static function getOutstandingBalances(int $userId): array
     {
         $pdo = Database::getConnection();
 
-        $stmt = $pdo->query(
+        $stmt = $pdo->prepare(
             "SELECT
                 c.cust_id,
                 c.name,
@@ -211,10 +190,11 @@ class Report
                 MAX(t.created_at) AS last_txn_date
              FROM customers c
              LEFT JOIN transactions t ON c.cust_id = t.cust_id
-             WHERE c.balance > 0
+             WHERE c.user_id = :uid AND c.balance > 0
              GROUP BY c.cust_id, c.name, c.phone, c.balance, c.credit_limit
              ORDER BY c.balance DESC"
         );
+        $stmt->execute([':uid' => $userId]);
         $rows = $stmt->fetchAll();
 
         foreach ($rows as &$row) {
@@ -232,18 +212,21 @@ class Report
     }
 
     /**
-     * Fetch all previously saved report rows, grouped by period.
+     * Fetch all previously saved report rows for the user, grouped by period.
      *
+     * @param int $userId
      * @return array<string, array{credit: float, payment: float, profit: float, net: float, generated_at: string}>
      */
-    public static function getPastReports(): array
+    public static function getPastReports(int $userId): array
     {
         $pdo  = Database::getConnection();
-        $stmt = $pdo->query(
+        $stmt = $pdo->prepare(
             "SELECT period, type, total, generated_at
              FROM reports
+             WHERE user_id = :uid
              ORDER BY period DESC, generated_at DESC"
         );
+        $stmt->execute([':uid' => $userId]);
         $rows = $stmt->fetchAll();
 
         $grouped = [];
@@ -265,16 +248,22 @@ class Report
     }
 
     /**
-     * Returns an array of years that contain transactions.
+     * Returns an array of years that contain transactions for this user.
      *
+     * @param int $userId
      * @return array<int>
      */
-    public static function getAvailableYears(): array
+    public static function getAvailableYears(int $userId): array
     {
         $pdo  = Database::getConnection();
-        $stmt = $pdo->query(
-            "SELECT DISTINCT YEAR(created_at) AS yr FROM transactions ORDER BY yr DESC"
+        $stmt = $pdo->prepare(
+            "SELECT DISTINCT YEAR(t.created_at) AS yr
+             FROM transactions t
+             JOIN customers c ON t.cust_id = c.cust_id
+             WHERE c.user_id = :uid
+             ORDER BY yr DESC"
         );
+        $stmt->execute([':uid' => $userId]);
         $dbYears = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         $currentYear = (int) date('Y');
