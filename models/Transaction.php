@@ -128,7 +128,7 @@ class Transaction
                         ];
                     }
 
-                    $availableStock = (int)$product['stock'];
+                    $availableStock = (float)$product['stock'];
 
                     // Rule: Reject quantities above available stock
                     if ($qty > $availableStock) {
@@ -153,7 +153,7 @@ class Transaction
 
                     // Reduce stock in DB
                     $stmtStockReduce->execute([
-                        ':qty' => (int)$qty,
+                        ':qty' => $qty,
                         ':id'  => $prodId,
                         ':uid' => $userId,
                     ]);
@@ -167,8 +167,19 @@ class Transaction
                 }
             }
 
-            // Determine final transaction amount
-            $finalAmount = !empty($processedItems) ? round($computedAmount, 2) : round($directAmount, 2);
+            // Determine final transaction amount to add to customer balance (baki)
+            // If items are chosen and directAmount > 0 was also specified as the credited portion,
+            // use directAmount as the credit amount (capped at computed total).
+            // If directAmount is 0/empty, the full computed items amount is credited.
+            if (!empty($processedItems)) {
+                if ($directAmount > 0.0) {
+                    $finalAmount = round($directAmount, 2);
+                } else {
+                    $finalAmount = round($computedAmount, 2);
+                }
+            } else {
+                $finalAmount = round($directAmount, 2);
+            }
 
             // Rule: amount > 0
             if ($finalAmount <= 0.0) {

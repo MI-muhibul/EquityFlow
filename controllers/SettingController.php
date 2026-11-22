@@ -9,9 +9,9 @@ declare(strict_types=1);
  *   - Default Credit Limit
  *   - Default Minimum Stock Alert
  *   - Default Language ('bn' or 'en')
- *   - Database Backup Creation (trigger PDO dump)
- *   - Secure Download of Backups
- *   - Listing of all existing backup archives
+ *   - Database Backup Creation (trigger multi-tenant PDO dump)
+ *   - Secure Download of Backups (scoped to current user, path traversal protected)
+ *   - Listing of user's own backup archives
  * -----------------------------------------------------------------------------
  * Rules:
  *   - require_login() enforced
@@ -21,6 +21,7 @@ declare(strict_types=1);
  *   - Prepared statements only via models
  *   - htmlspecialchars on all output via e()
  *   - Bilingual translations from lang packs via t()
+ *   - Backups strictly scoped to user_id (never dumps users table)
  * -----------------------------------------------------------------------------
  */
 
@@ -78,7 +79,7 @@ class SettingController
     {
         $userId   = current_user_id() ?? (int)$_SESSION['user_id'];
         $settings = Setting::all($userId);
-        $backups  = Backup::listBackups();
+        $backups  = Backup::listBackups($userId);
 
         $pageTitle  = t('settings_title');
         $activePage = 'settings';
@@ -154,10 +155,12 @@ class SettingController
     }
 
     /**
-     * Handle trigger to create a new database backup.
+     * Handle trigger to create a new multi-tenant database backup for current user.
      */
     public function backup(): void
     {
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: index.php?page=settings');
             exit;
@@ -169,7 +172,7 @@ class SettingController
             exit;
         }
 
-        $result = Backup::createDump();
+        $result = Backup::createDump($userId);
         if ($result['success']) {
             flash_set('success', t('msg_backup_created') . ' (' . e($result['filename']) . ')');
         } else {
@@ -185,8 +188,9 @@ class SettingController
      */
     public function download(): void
     {
+        $userId = current_user_id() ?? (int)$_SESSION['user_id'];
         $file = isset($_GET['file']) && is_string($_GET['file']) ? trim($_GET['file']) : '';
-        $path = Backup::getDownloadPath($file);
+        $path = Backup::getDownloadPath($file, $userId);
 
         if ($path === false) {
             $this->render404();
@@ -201,7 +205,11 @@ class SettingController
         header('Pragma: public');
         header('Content-Length: ' . filesize($path));
 
-        // Read directly to output buffer
+        // Clear output buffer if any
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
         readfile($path);
         exit;
     }

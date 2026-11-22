@@ -50,14 +50,31 @@ declare(strict_types=1);
 
         <!-- Category -->
         <div class="form-group" style="margin-bottom: 1.25rem;">
-            <label class="form-label" for="category" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+            <label class="form-label" for="category_select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
                 <?= e(t('label_category')) ?> <span style="color: var(--accent-danger, #ef4444); font-weight: bold;">*</span>
             </label>
+            <select name="category"
+                    id="category_select"
+                    required
+                    class="form-control"
+                    style="width: 100%; padding: 0.75rem 1rem; border-radius: 6px; background-color: var(--bg-base, #0b0f19); color: var(--text-primary, #f8fafc); border: 1px solid var(--border-color, #2a3754);">
+                <option value=""><?= e(t('select_category')) ?></option>
+                <?php foreach (Product::PREDEFINED_CATEGORIES as $cat): ?>
+                    <option value="<?= e($cat) ?>"><?= e($cat) ?></option>
+                <?php endforeach; ?>
+                <option value="others"><?= e(t('category_other')) ?></option>
+            </select>
+        </div>
+
+        <!-- Custom Category Input (If Others selected) -->
+        <div class="form-group" id="other_category_box" style="margin-bottom: 1.25rem;">
+            <label class="form-label" for="other_category" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                <?= e(t('label_other_category')) ?> <span class="text-muted" style="font-size: 0.85rem; font-weight: normal;">(<?= e(t('category_other')) ?>)</span>
+            </label>
             <input type="text"
-                   name="category"
-                   id="category"
-                   required
-                   placeholder="e.g. মুদি / Grocery"
+                   name="other_category"
+                   id="other_category"
+                   placeholder="<?= e(t('placeholder_other_cat')) ?>"
                    class="form-control"
                    style="width: 100%; padding: 0.75rem 1rem; border-radius: 6px; background-color: var(--bg-base, #0b0f19); color: var(--text-primary, #f8fafc); border: 1px solid var(--border-color, #2a3754);">
         </div>

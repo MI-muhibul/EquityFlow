@@ -113,6 +113,10 @@ return [
     'label_date'              => 'Date',
     'label_product_name'      => 'Product Name',
     'label_category'          => 'Category',
+    'select_category'         => '-- Select Category --',
+    'category_other'          => 'Other (Write below)',
+    'label_other_category'    => 'Custom Category Name',
+    'placeholder_other_cat'   => 'e.g. ইলেকট্রনিক্স / Electronics',
     'label_retail_price'      => 'Retail Price (Sale ৳)',
     'label_cost_price'        => 'Cost Price (Purchase ৳)',
     'label_stock'             => 'Current Stock',
@@ -218,6 +222,10 @@ return [
     'txn_items_heading'       => 'Credit Sale Products (5 Rows)',
     'txn_items_subheading'    => 'Select products and enter quantities. Total amount will be auto-calculated from catalog retail prices.',
     'txn_direct_amount'       => 'Or Enter Direct Amount (No Products)',
+    'txn_credit_amount'       => 'Credited Amount (Baki) to add',
+    'txn_credit_amount_help'  => 'If products are selected, this is the amount to add to the customer\'s credit balance. Leave empty to credit the entire product total.',
+    'txn_unit_price'          => 'Unit Selling Price',
+    'txn_qty'                 => 'Quantity',
 
     // Report Module
     'report_title'            => 'Monthly Financial Summary',

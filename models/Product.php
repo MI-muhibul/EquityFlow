@@ -23,13 +23,31 @@ require_once __DIR__ . '/../config/Database.php';
 class Product
 {
     /**
+     * Standard pre-defined retail categories for grocery/retail shops in Bangladesh.
+     */
+    public const PREDEFINED_CATEGORIES = [
+        'মুদি / Grocery',
+        'তেল / Cooking Oil',
+        'ডাল / Pulses',
+        'চাল ও আটা / Rice & Flour',
+        'মসলা / Spices',
+        'চা ও পানীয় / Beverage',
+        'দুগ্ধজাত / Dairy',
+        'প্রসাধন / Toiletries',
+        'পরিচ্ছন্নতা / Cleaning',
+        'স্ন্যাক্স ও বিস্কুট / Snacks & Biscuits',
+        'ওষুধ ও স্বাস্থ্য / Medicine & Health',
+        'স্টেশনারি / Stationery',
+    ];
+
+    /**
      * Compute stock status for a product row in PHP.
      *
-     * @param int $stock
-     * @param int $minStock
+     * @param float|int $stock
+     * @param float|int $minStock
      * @return array{key: string, badge_class: string}
      */
-    public static function computeStatus(int $stock, int $minStock): array
+    public static function computeStatus(float|int $stock, float|int $minStock): array
     {
         if ($stock <= 0) {
             return [
@@ -305,8 +323,8 @@ class Product
         string $category,
         float  $retailPrice,
         float  $costPrice,
-        int    $stock,
-        int    $minStock
+        float  $stock,
+        float  $minStock
     ): int {
         $pdo = Database::getConnection();
         $sql = 'INSERT INTO products (user_id, name, category, retail_price, cost_price, stock, min_stock, created_at)
@@ -334,8 +352,8 @@ class Product
      * @param string $category
      * @param float $retailPrice
      * @param float $costPrice
-     * @param int $stock
-     * @param int $minStock
+     * @param float $stock
+     * @param float $minStock
      * @return void
      */
     public static function update(
@@ -345,8 +363,8 @@ class Product
         string $category,
         float  $retailPrice,
         float  $costPrice,
-        int    $stock,
-        int    $minStock
+        float  $stock,
+        float  $minStock
     ): void {
         $pdo = Database::getConnection();
         $sql = 'UPDATE products
@@ -375,15 +393,15 @@ class Product
      *
      * @param int $prodId
      * @param int $userId
-     * @param int $newStock
+     * @param float $newStock
      * @return void
      */
-    public static function updateStock(int $prodId, int $userId, int $newStock): void
+    public static function updateStock(int $prodId, int $userId, float $newStock): void
     {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare('UPDATE products SET stock = :stock WHERE prod_id = :id AND user_id = :uid');
         $stmt->execute([
-            ':stock' => max(0, $newStock),
+            ':stock' => max(0.0, $newStock),
             ':id'    => $prodId,
             ':uid'   => $userId,
         ]);

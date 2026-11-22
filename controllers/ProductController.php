@@ -154,8 +154,17 @@ class ProductController
                 exit;
             }
 
-            $name        = trim($_POST['name'] ?? '');
-            $category    = trim($_POST['category'] ?? '');
+            $name            = trim($_POST['name'] ?? '');
+            $categorySelect  = trim($_POST['category'] ?? '');
+            $otherCategory   = trim($_POST['other_category'] ?? '');
+
+            // If "others" is chosen, use the written category
+            if ($categorySelect === 'others' || $categorySelect === 'Other') {
+                $category = $otherCategory;
+            } else {
+                $category = $categorySelect;
+            }
+
             $retailPrice = isset($_POST['retail_price']) ? (float)$_POST['retail_price'] : -1.0;
             $costPrice   = isset($_POST['cost_price']) ? (float)$_POST['cost_price'] : -1.0;
             $stock       = isset($_POST['stock']) ? (int)$_POST['stock'] : -1;
@@ -219,8 +228,17 @@ class ProductController
                 exit;
             }
 
-            $name        = trim($_POST['name'] ?? '');
-            $category    = trim($_POST['category'] ?? '');
+            $name            = trim($_POST['name'] ?? '');
+            $categorySelect  = trim($_POST['category'] ?? '');
+            $otherCategory   = trim($_POST['other_category'] ?? '');
+
+            // If "others" is chosen, use the written category
+            if ($categorySelect === 'others' || $categorySelect === 'Other') {
+                $category = $otherCategory;
+            } else {
+                $category = $categorySelect;
+            }
+
             $retailPrice = isset($_POST['retail_price']) ? (float)$_POST['retail_price'] : -1.0;
             $costPrice   = isset($_POST['cost_price']) ? (float)$_POST['cost_price'] : -1.0;
             $stock       = isset($_POST['stock']) ? (int)$_POST['stock'] : -1;

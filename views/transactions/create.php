@@ -91,13 +91,13 @@ declare(strict_types=1);
 
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                 <?php for ($i = 0; $i < 5; $i++): ?>
-                    <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 0.75rem; align-items: center;">
+                    <div style="display: grid; grid-template-columns: 2.5fr 1fr; gap: 0.75rem; align-items: center;">
                         <div>
                             <select name="items[<?= $i ?>][prod_id]" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 6px; background-color: #151d2e; color: var(--text-primary, #f8fafc); border: 1px solid var(--border-color, #2a3754); font-size: 0.9rem;">
                                 <option value=""><?= ($i + 1) ?>. <?= e(t('txn_select_product')) ?></option>
                                 <?php foreach ($products as $p): ?>
                                     <option value="<?= (int)$p['prod_id'] ?>">
-                                        <?= e($p['name']) ?> (Stock: <?= (int)$p['stock'] ?>) &mdash; <?= e(format_money((float)$p['retail_price'])) ?>
+                                        <?= e($p['name']) ?> (Stock: <?= e(number_format((float)$p['stock'], 2)) ?>) &mdash; <?= e(t('txn_unit_price')) ?>: <?= e(format_money((float)$p['retail_price'])) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -105,10 +105,10 @@ declare(strict_types=1);
                         <div>
                             <input type="number"
                                    name="items[<?= $i ?>][qty]"
-                                   min="0.5"
-                                   step="0.5"
-                                   placeholder="Qty"
-                                   class="form-control"
+                                   min="0.01"
+                                   step="0.01"
+                                   placeholder="<?= e(t('txn_qty')) ?> (e.g. 2.50)"
+                                   class="form-control no-spin"
                                    style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 6px; background-color: #151d2e; color: var(--text-primary, #f8fafc); border: 1px solid var(--border-color, #2a3754); font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.95rem; font-weight: 600;">
                         </div>
                     </div>
@@ -116,10 +116,10 @@ declare(strict_types=1);
             </div>
         </div>
 
-        <!-- Direct Amount Entry (Fallback or for Payment) -->
+        <!-- Credited Amount Box (Baki / Direct Amount) -->
         <div class="form-group" style="margin-bottom: 1.25rem;">
             <label class="form-label" for="amount" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
-                <?= e(t('label_amount')) ?> / <?= e(t('txn_direct_amount')) ?>
+                💰 <?= e(t('txn_credit_amount')) ?> <span class="text-muted" style="font-weight: normal; font-size: 0.88rem;">(<?= e(t('txn_direct_amount')) ?>)</span>
             </label>
             <div style="position: relative;">
                 <input type="number"
@@ -128,11 +128,11 @@ declare(strict_types=1);
                        step="0.01"
                        min="0"
                        placeholder="0.00"
-                       class="form-control"
+                       class="form-control no-spin"
                        style="width: 100%; padding: 0.75rem 1rem; border-radius: 6px; background-color: var(--bg-base, #0b0f19); color: var(--text-primary, #f8fafc); border: 1px solid var(--border-color, #2a3754); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 1.1rem; font-weight: 600;">
             </div>
             <p class="text-muted text-sm" style="margin-top: 0.35rem;">
-                Note: When product rows above are chosen, the total amount is automatically computed from the selected products and their retail prices.
+                <?= e(t('txn_credit_amount_help')) ?>
             </p>
         </div>
 

@@ -909,3 +909,16 @@ textarea:focus {
         flex: 1 1 100%;
     }
 }
+
+/* --------------------------------------------------------------------------
+   Remove Spin Buttons from Number Inputs
+   -------------------------------------------------------------------------- */
+input[type="number"].no-spin::-webkit-inner-spin-button,
+input[type="number"].no-spin::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"].no-spin {
+    -moz-appearance: textfield;
+}
+
