@@ -26,7 +26,14 @@ if ($provider === 'google') {
     $badgeLabel = t('auth_both');
 }
 
-$initial = mb_substr($user['name'] ?? 'U', 0, 1, 'UTF-8');
+$rawName = trim((string)($user['name'] ?? 'U'));
+if (function_exists('mb_substr')) {
+    $initial = mb_substr($rawName, 0, 1, 'UTF-8');
+} elseif (preg_match('/^./u', $rawName, $m)) {
+    $initial = $m[0];
+} else {
+    $initial = substr($rawName, 0, 1) ?: 'U';
+}
 ?>
 
 <div class="card" style="max-width: 680px; margin: 1.5rem auto; padding: 2rem;">
@@ -130,9 +137,7 @@ $initial = mb_substr($user['name'] ?? 'U', 0, 1, 'UTF-8');
             <?= e(t('security_title') ?? 'Security & Authentication') ?>
         </h2>
         <p class="text-muted text-sm" style="margin-bottom: 1.25rem;">
-            <?= ($hasPassword ?? true)
-                ? 'আপনার একাউন্টের পাসওয়ার্ড পরিবর্তন করতে পারেন।'
-                : 'আপনার একাউন্টটি গুগল দিয়ে খোলা। চাইলে ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করার জন্য একটি পাসওয়ার্ড সেট করতে পারেন।' ?>
+            <?= e(($hasPassword ?? true) ? t('security_password_desc_has') : t('security_password_desc_none')) ?>
         </p>
 
         <a href="index.php?page=auth&amp;action=change_password" class="btn btn-secondary">

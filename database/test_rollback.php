@@ -27,12 +27,12 @@ echo "  ledger_entries rows         : {$ledgerBefore}\n\n";
 // ── SIMULATE FAILURE ─────────────────────────────────────────────────────────
 echo "RUNNING: Transaction::record(custId=1, ownerId=1, amount=500, type='credit', simulateFailure=true)\n";
 $result = Transaction::record(
-    custId        : $custId,
-    ownerId       : $ownerId,
-    directAmount  : 500.0,
-    type          : 'credit',
-    note          : 'Test Rollback - should not persist',
-    items         : [],
+    custId         : $custId,
+    userId         : $ownerId,
+    directAmount   : 500.0,
+    type           : 'credit',
+    note           : 'Test Rollback - should not persist',
+    items          : [],
     simulateFailure: true
 );
 echo "RETURN VALUE: " . json_encode($result, JSON_PRETTY_PRINT) . "\n\n";

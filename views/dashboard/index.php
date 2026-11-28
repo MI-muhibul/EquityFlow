@@ -90,7 +90,7 @@ declare(strict_types=1);
                 ⚠️ <?= e(t('dashboard_low_stock_panel')) ?>
             </h2>
             <p class="text-muted text-sm" style="margin-top: 0.2rem;">
-                Items that have reached or fallen below minimum threshold.
+                <?= e(t('dashboard_low_stock_desc')) ?>
             </p>
         </div>
         <a href="index.php?page=inventory" class="btn btn-ghost btn-sm">

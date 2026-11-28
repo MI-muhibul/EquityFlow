@@ -22,7 +22,7 @@ $formDesc    = $hasPassword
 ?>
 
 <div class="card" style="max-width: 520px; margin: 1.5rem auto;">
-    <div class="card-head">
+    <div class="card-header">
         <div>
             <h1 class="card-title"><?= e($formTitle) ?></h1>
             <div class="card-subtitle text-muted text-sm" style="margin-top: 0.25rem;">
@@ -31,6 +31,7 @@ $formDesc    = $hasPassword
         </div>
     </div>
 
+    <div class="card-body">
     <!-- Error Alert Banner -->
     <?php if (!empty($error)): ?>
         <div class="alert alert-error" role="alert" style="margin-bottom: 1.25rem;">
@@ -94,7 +95,7 @@ $formDesc    = $hasPassword
         </div>
 
         <!-- Form Actions -->
-        <div class="card-foot" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <div class="card-footer" style="margin: 1.5rem -1.35rem -1.35rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
             <a href="index.php?page=dashboard" class="btn btn-secondary">
                 <?= e(t('btn_cancel')) ?>
             </a>
@@ -103,4 +104,5 @@ $formDesc    = $hasPassword
             </button>
         </div>
     </form>
+    </div>
 </div>

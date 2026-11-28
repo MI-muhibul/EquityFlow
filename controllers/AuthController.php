@@ -678,10 +678,13 @@ class AuthController {
             $sslOpts['cafile'] = $caPath;
         }
 
-        $ctx  = stream_context_create(['http' => $httpOpts, 'ssl' => $sslOpts]);
-        $body = @file_get_contents($url, false, $ctx);
-        $status = 0;
-        if (!empty($http_response_header) && preg_match('/HTTP\/\S+\s+(\d{3})/', $http_response_header[0], $m)) {
+        $ctx     = stream_context_create(['http' => $httpOpts, 'ssl' => $sslOpts]);
+        $body    = @file_get_contents($url, false, $ctx);
+        $headers = function_exists('http_get_last_response_headers')
+            ? http_get_last_response_headers()
+            : ($http_response_header ?? []);
+        $status  = 0;
+        if (!empty($headers) && preg_match('/HTTP\/\S+\s+(\d{3})/', $headers[0], $m)) {
             $status = (int)$m[1];
         }
 

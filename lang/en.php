@@ -320,4 +320,15 @@ return [
     'pagination_showing'      => 'Showing',
     'pagination_to'           => 'to',
     'pagination_records'      => 'records',
+
+    // Additional UI & Validation Keys
+    'error_invalid_email'        => 'Please enter a valid email address.',
+    'pin_invalid'                => 'Security PIN must be 4 to 6 digits.',
+    'min_8_chars'                => 'Minimum 8 characters',
+    'min_8_chars_desc'           => 'Password must be at least 8 characters long.',
+    'security_title'             => 'Security & Authentication',
+    'security_password_desc_has' => 'You can change your account password at any time.',
+    'security_password_desc_none'=> 'Your account was created with Google Sign-In. You can set a password to also sign in with email.',
+    'label_time'                 => 'Time',
+    'dashboard_low_stock_desc'   => 'Items that have reached or fallen below minimum threshold.',
 ];
