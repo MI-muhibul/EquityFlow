@@ -85,13 +85,21 @@ if (!defined('GOOGLE_CLIENT_SECRET')) {
     define('GOOGLE_CLIENT_SECRET', getenv('GOOGLE_CLIENT_SECRET') ?: '');
 }
 if (!defined('GOOGLE_REDIRECT_URI')) {
+    $isHttps    = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    $scheme     = $isHttps ? 'https://' : 'http://';
+    $host       = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scriptDir  = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+    $basePath   = ($scriptDir === '/' || $scriptDir === '.') ? '' : rtrim($scriptDir, '/');
+    $autoUri    = $scheme . $host . $basePath . '/index.php?page=google-callback';
+
     $envRedirect = getenv('GOOGLE_REDIRECT_URI');
     if ($envRedirect) {
-        define('GOOGLE_REDIRECT_URI', $envRedirect);
+        // Use .env redirect URI when its host:port matches the active request; otherwise adapt to current host/path
+        $envParts = parse_url($envRedirect);
+        $envHost  = ($envParts['host'] ?? '') . (isset($envParts['port']) ? ':' . $envParts['port'] : '');
+        define('GOOGLE_REDIRECT_URI', ($envHost === $host) ? $envRedirect : $autoUri);
     } else {
-        // Auto-detect scheme + host (works in both XAMPP http and production https)
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-        $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        define('GOOGLE_REDIRECT_URI', $scheme . $host . '/EquityFlow/index.php?page=google-callback');
+        define('GOOGLE_REDIRECT_URI', $autoUri);
     }
 }

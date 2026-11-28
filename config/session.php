@@ -27,8 +27,9 @@ function init_secure_session(): void {
         return;
     }
 
-    // Detect if current connection is over HTTPS
+    // Detect if current connection is over HTTPS (including reverse proxies like Vercel)
     $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
         || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
 
     // Set hardened cookie configuration

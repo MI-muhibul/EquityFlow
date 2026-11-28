@@ -392,9 +392,13 @@ class AuthController {
     public function googleLogin(): void {
         redirect_if_logged_in();
 
-        $clientId = defined('GOOGLE_CLIENT_ID') ? GOOGLE_CLIENT_ID : '';
-        if ($clientId === '' || str_contains($clientId, 'YOUR_GOOGLE_CLIENT_ID')) {
-            error_log('EquityFlow: GOOGLE_CLIENT_ID is not configured in config/config.php');
+        $clientId     = defined('GOOGLE_CLIENT_ID') ? GOOGLE_CLIENT_ID : '';
+        $clientSecret = defined('GOOGLE_CLIENT_SECRET') ? GOOGLE_CLIENT_SECRET : '';
+        if (
+            $clientId === '' || str_contains($clientId, 'YOUR_GOOGLE_CLIENT_ID') ||
+            $clientSecret === '' || str_contains($clientSecret, 'YOUR_GOOGLE_CLIENT_SECRET')
+        ) {
+            error_log('EquityFlow: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is not configured in .env');
             flash_set('warning', t('google_failed'));
             header('Location: index.php?page=login');
             exit;
@@ -472,7 +476,7 @@ class AuthController {
             exit;
         }
 
-        // 4. Exchange authorization code for tokens via cURL POST
+        // 4. Exchange authorization code for tokens
         $tokenUrl = 'https://oauth2.googleapis.com/token';
         $postFields = [
             'code'          => $code,
@@ -482,33 +486,16 @@ class AuthController {
             'grant_type'    => 'authorization_code',
         ];
 
-        $ch = curl_init($tokenUrl);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/x-www-form-urlencoded',
-            'Accept: application/json',
-        ]);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        self::configureSslBundle($ch);
-
-        $response  = curl_exec($ch);
-        $curlErrNo = curl_errno($ch);
-        $curlError = curl_error($ch);
-        $httpCode  = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($curlErrNo !== 0) {
-            self::logCurlError($curlErrNo, $curlError, 'Token Exchange');
+        $tokenRes = self::httpRequest($tokenUrl, $postFields, 'Token Exchange');
+        if ($tokenRes['error'] !== null) {
             flash_set('error', t('google_failed'));
             header('Location: index.php?page=login');
             exit;
         }
 
-        $tokenData = json_decode((string)$response, true);
-        if ($httpCode !== 200 || empty($tokenData['id_token'])) {
-            error_log("EquityFlow Google OAuth token exchange failed (HTTP {$httpCode}): " . ($tokenData['error_description'] ?? $response));
+        $tokenData = json_decode($tokenRes['body'], true);
+        if ($tokenRes['status'] !== 200 || empty($tokenData['id_token'])) {
+            error_log("EquityFlow Google OAuth token exchange failed (HTTP {$tokenRes['status']}): " . ($tokenData['error_description'] ?? $tokenRes['body']));
             flash_set('error', t('google_failed'));
             header('Location: index.php?page=login');
             exit;
@@ -518,25 +505,15 @@ class AuthController {
 
         // 5. Validate id_token via Google's tokeninfo endpoint
         $infoUrl = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($idToken);
-        $chInfo  = curl_init($infoUrl);
-        curl_setopt($chInfo, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($chInfo, CURLOPT_TIMEOUT, 15);
-        self::configureSslBundle($chInfo);
+        $infoRes = self::httpRequest($infoUrl, null, 'Tokeninfo Validation');
 
-        $infoResponse = curl_exec($chInfo);
-        $infoErrNo    = curl_errno($chInfo);
-        $infoError    = curl_error($chInfo);
-        $infoHttpCode = (int)curl_getinfo($chInfo, CURLINFO_HTTP_CODE);
-        curl_close($chInfo);
-
-        if ($infoErrNo !== 0 || $infoHttpCode !== 200) {
-            self::logCurlError($infoErrNo, $infoError, 'Tokeninfo Validation');
+        if ($infoRes['error'] !== null || $infoRes['status'] !== 200) {
             flash_set('error', t('google_failed'));
             header('Location: index.php?page=login');
             exit;
         }
 
-        $payload = json_decode((string)$infoResponse, true);
+        $payload = json_decode($infoRes['body'], true);
         if (!is_array($payload)) {
             error_log('EquityFlow Google OAuth: Malformed tokeninfo response.');
             flash_set('error', t('google_failed'));
@@ -645,18 +622,88 @@ class AuthController {
     }
 
     /**
-     * Auto-detect and configure local CA bundle if php.ini curl.cainfo is missing in XAMPP.
+     * Perform an HTTP GET or POST request using cURL, or PHP streams as fallback.
      *
-     * @param \CurlHandle $ch
+     * @param string $url
+     * @param array<string, string>|null $postFields
+     * @param string $context
+     * @return array{status: int, body: string, error: string|null}
      */
-    private static function configureSslBundle(\CurlHandle $ch): void {
-        // If curl.cainfo is already configured in php.ini, use it
-        $configured = ini_get('curl.cainfo');
-        if (!empty($configured) && file_exists($configured)) {
-            return;
+    private static function httpRequest(string $url, ?array $postFields, string $context): array {
+        $caPath = self::resolveSslCaPath();
+
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            if ($postFields !== null) {
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Content-Type: application/x-www-form-urlencoded',
+                    'Accept: application/json',
+                ]);
+            }
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            if ($caPath !== null) {
+                curl_setopt($ch, CURLOPT_CAINFO, $caPath);
+            }
+
+            $response  = curl_exec($ch);
+            $curlErrNo = curl_errno($ch);
+            $curlError = curl_error($ch);
+            $httpCode  = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($curlErrNo !== 0) {
+                self::logCurlError($curlErrNo, $curlError, $context);
+                return ['status' => $httpCode, 'body' => '', 'error' => $curlError];
+            }
+
+            return ['status' => $httpCode, 'body' => (string)$response, 'error' => null];
         }
 
-        // Probe common XAMPP / Windows CA certificate bundle locations
+        // Stream fallback when php_curl extension is disabled (e.g. standalone PHP CLI)
+        $httpOpts = [
+            'method'        => $postFields !== null ? 'POST' : 'GET',
+            'timeout'       => 15,
+            'ignore_errors' => true,
+        ];
+        if ($postFields !== null) {
+            $httpOpts['header']  = "Content-Type: application/x-www-form-urlencoded\r\nAccept: application/json\r\n";
+            $httpOpts['content'] = http_build_query($postFields);
+        }
+
+        $sslOpts = ['verify_peer' => true, 'verify_peer_name' => true];
+        if ($caPath !== null) {
+            $sslOpts['cafile'] = $caPath;
+        }
+
+        $ctx  = stream_context_create(['http' => $httpOpts, 'ssl' => $sslOpts]);
+        $body = @file_get_contents($url, false, $ctx);
+        $status = 0;
+        if (!empty($http_response_header) && preg_match('/HTTP\/\S+\s+(\d{3})/', $http_response_header[0], $m)) {
+            $status = (int)$m[1];
+        }
+
+        if ($body === false) {
+            error_log("EquityFlow Google OAuth [{$context}] - HTTP stream request failed.");
+            return ['status' => $status, 'body' => '', 'error' => 'Stream request failed'];
+        }
+
+        return ['status' => $status, 'body' => $body, 'error' => null];
+    }
+
+    /**
+     * Auto-detect a local CA certificate bundle on Windows/XAMPP when php.ini lacks one.
+     *
+     * @return string|null
+     */
+    private static function resolveSslCaPath(): ?string {
+        $configured = ini_get('curl.cainfo');
+        if (!empty($configured) && file_exists($configured)) {
+            return null;
+        }
+
         $candidates = [
             'C:\\xampp\\php\\extras\\ssl\\cacert.pem',
             'C:\\xampp\\perl\\vendor\\lib\\Mozilla\\CA\\cacert.pem',
@@ -665,10 +712,11 @@ class AuthController {
 
         foreach ($candidates as $path) {
             if (file_exists($path)) {
-                curl_setopt($ch, CURLOPT_CAINFO, $path);
-                return;
+                return $path;
             }
         }
+
+        return null;
     }
 
     /**
